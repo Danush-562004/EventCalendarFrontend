@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { EventApiService, CategoryApiService, VenueApiService } from '../../../core/services/api.service';
+import { AuthStore } from '../../../core/services/auth.store';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { LoadingComponent } from '../../../shared/components/loading/loading.component';
 import { CategoryResponse, VenueResponse } from '../../../core/models';
@@ -96,6 +97,7 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
               </div>
             </div>
 
+            @if (!auth.isAdmin()) {
             <div class="form-section">
               <h3 class="form-section__title">Reminder</h3>
               <div class="form-grid">
@@ -114,6 +116,7 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
                 }
               </div>
             </div>
+            }
 
             <div class="form-actions">
               <a routerLink="/events" class="btn btn--ghost">Cancel</a>
@@ -155,6 +158,7 @@ export class EventFormComponent implements OnInit {
   private categoryApi = inject(CategoryApiService);
   private venueApi = inject(VenueApiService);
   private toast = inject(ToastService);
+  auth = inject(AuthStore);
 
   loading = signal(false);
   saving = signal(false);

@@ -155,8 +155,8 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
             </div>
           }
 
-          <!-- Set Reminder Section (all logged-in users) -->
-          @if (auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
+          <!-- Set Reminder Section (users only, not admin) -->
+          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
             <div class="ticket-section">
               <h2 class="section-h2">Set a Reminder</h2>
               <div class="ticket-form">
@@ -166,7 +166,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
                 </div>
                 <div class="form-field">
                   <label class="form-label">Date & Time</label>
-                  <input class="form-input" type="datetime-local" [(ngModel)]="reminderDateTime">
+                  <input class="form-input" type="datetime-local" [(ngModel)]="reminderDateTime" [min]="minReminderDateTime">
                 </div>
                 <div class="form-field">
                   <label class="form-label">Type</label>
@@ -178,7 +178,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
                 </div>
                 <button class="btn btn--ghost" [disabled]="addingReminder()" (click)="addReminder()">
                   @if (addingReminder()) { <span class="btn-spinner"></span> }
-                  🔔 Add Reminder
+                  🔔 Set Reminder
                 </button>
               </div>
             </div>
@@ -284,6 +284,10 @@ export class EventDetailComponent implements OnInit {
   reminderDateTime = '';
   reminderType: any = 'Email';
 
+  get minReminderDateTime(): string {
+    return new Date().toISOString().slice(0, 16);
+  }
+
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.eventApi.getById(id).subscribe({
@@ -306,7 +310,7 @@ export class EventDetailComponent implements OnInit {
       return;
     }
     this.bookingTicket.set(true);
-    const req: CreateTicketRequest = { eventId: ev.id, ticketType: this.ticketType, quantity: this.ticketQty };
+    const req: CreateTicketRequest = { eventId: ev.id, type: this.ticketType, quantity: this.ticketQty };
     if (this.seatNumber) req.seatNumber = this.seatNumber;
     this.ticketApi.create(req).subscribe({
       next: t => {
@@ -335,6 +339,9 @@ export class EventDetailComponent implements OnInit {
     if (!ev || !this.reminderTitle || !this.reminderDateTime) {
       this.toast.warning('Please fill reminder title and date/time.'); return;
     }
+    if (new Date(this.reminderDateTime) <= new Date()) {
+      this.toast.error('Reminder time must be in the future.'); return;
+    }
     this.addingReminder.set(true);
     const req: CreateReminderRequest = {
       title: this.reminderTitle,
@@ -344,13 +351,13 @@ export class EventDetailComponent implements OnInit {
     };
     this.reminderApi.create(req).subscribe({
       next: () => {
-        this.toast.success('Reminder added successfully!');
+        this.toast.success('⏰ Reminder set! You will be notified at the scheduled time.');
         this.addingReminder.set(false);
         this.reminderTitle = '';
         this.reminderDateTime = '';
       },
       error: () => {
-        this.toast.error('Failed to add reminder.');
+        this.toast.error('Failed to set reminder.');
         this.addingReminder.set(false);
       }
     });

@@ -22,11 +22,28 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
         </div>
       </div>
 
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" [(ngModel)]="filterKeyword" placeholder="Search by event…" (input)="applyFilter()">
+        </div>
+        <select class="form-select filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
+          <option value="">All Statuses</option>
+          <option value="Reserved">Reserved</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Attended">Attended</option>
+        </select>
+        <input class="form-input filter-price" type="number" [(ngModel)]="filterMinPrice" (input)="applyFilter()" placeholder="Min ₹" min="0">
+        <input class="form-input filter-price" type="number" [(ngModel)]="filterMaxPrice" (input)="applyFilter()" placeholder="Max ₹" min="0">
+        <button class="btn btn--ghost btn--sm" (click)="clearFilter()">Clear</button>
+      </div>
+
       @if (loading()) {
         <app-loading text="Loading tickets..." />
       } @else {
         <div class="tickets-list">
-          @for (tk of tickets(); track tk.id) {
+          @for (tk of filteredTickets(); track tk.id) {
             <div class="ticket-card" [class.cancelled]="tk.status === 'Cancelled'">
               <div class="ticket-card__left">
                 <div class="ticket-card__number">{{ tk.ticketNumber }}</div>
@@ -56,9 +73,15 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
                 }
                 <div class="ticket-card__actions">
                 @if (tk.status !== 'Cancelled' && !auth.isAdmin()) {
-                  @if (!hasCompletedPayment(tk)) {
+                  @if (!hasCompletedPayment(tk) && !isEventExpired(tk)) {
                     <button class="btn btn--ghost btn--sm" (click)="openPayment(tk)">Pay</button>
                     <button class="btn btn--danger btn--sm" (click)="cancelTarget = tk; confirmCancel = true">Cancel</button>
+                  }
+                  @if (isEventExpired(tk) && !hasCompletedPayment(tk)) {
+                    <span class="badge badge--gray">Event Ended</span>
+                  }
+                  @if (hasCompletedPayment(tk)) {
+                    <span class="badge badge--green">✓ Paid</span>
                   }
                 }
                 </div>
@@ -84,7 +107,7 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
       <div class="payment-breakdown">
         <div class="breakdown-row">
           <span>Price per ticket</span>
-          <span>{{ paymentTarget()!.price | number }}</span>
+          <span>{{ paymentTarget()!.price > 0 ? ('₹' + (paymentTarget()!.price | number)) : 'Free' }}</span>
         </div>
         <div class="breakdown-row">
           <span>Quantity</span>
@@ -92,19 +115,19 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
         </div>
         <div class="breakdown-row breakdown-row--total">
           <span>Total</span>
-          <span>{{ payAmount | number }} {{ payCurrency }}</span>
+          <span>{{ payAmount > 0 ? ('₹' + (payAmount | number) + ' ' + payCurrency) : 'Free' }}</span>
         </div>
       </div>
 
       <div class="form-field">
         <label class="form-label">Currency</label>
-        <select class="form-select" [(ngModel)]="payCurrency">
+        <select class="form-select" [(ngModel)]="payCurrency" [disabled]="payAmount === 0">
           <option>INR</option><option>USD</option><option>EUR</option>
         </select>
       </div>
       <div class="form-field">
         <label class="form-label">Payment Method</label>
-        <select class="form-select" [(ngModel)]="payMethod">
+        <select class="form-select" [(ngModel)]="payMethod" [disabled]="payAmount === 0">
           <option value="CreditCard">Credit Card</option>
           <option value="DebitCard">Debit Card</option>
           <option value="PayPal">PayPal</option>
@@ -112,19 +135,16 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
           <option value="Cash">Cash</option>
         </select>
       </div>
-      <div class="form-field">
+      <div class="form-field" *ngIf="payAmount > 0">
         <label class="form-label">Transaction ID (auto-generated)</label>
         <input class="form-input form-input--mono" [(ngModel)]="payTxnId" readonly>
       </div>
-      <!-- <div class="form-field">
-        <label class="form-label">Notes (optional)</label>
-        <input class="form-input" [(ngModel)]="payNotes" placeholder="Add a note...">
-      </div> -->
       <div class="modal__actions">
         <button class="btn btn--ghost" (click)="paymentTarget.set(null)">Cancel</button>
         <button class="btn" [disabled]="paying()" (click)="processPayment()">
           @if (paying()) { <span class="btn-spinner"></span> Processing... }
-          @else { Pay {{ payAmount | number }} {{ payCurrency }} }
+          @else if (payAmount > 0) { Pay ₹{{ payAmount | number }} {{ payCurrency }} }
+          @else { Confirm Free Ticket }
         </button>
       </div>
     </div>
@@ -172,6 +192,15 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
     .empty-icon { font-size: 3rem; }
     @media(max-width:600px) { .ticket-card { flex-direction: column; } .ticket-card__right { align-items: flex-start; } }
+    .payment-breakdown { background: var(--bg); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+    .breakdown-row { display: flex; justify-content: space-between; font-size: .875rem; color: var(--muted); }
+    .breakdown-row--total { font-weight: 700; font-size: 1rem; color: var(--text); border-top: 1px solid var(--border); padding-top: .5rem; margin-top: .25rem; }
+    .filter-bar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
+    .search-wrap { position: relative; flex: 1; min-width: 180px; }
+    .search-icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); font-size: .875rem; }
+    .search-input { width: 100%; padding: .5rem .75rem .5rem 2.25rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; }
+    .filter-select { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; min-width: 130px; }
+    .filter-price { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; width: 90px; }
   `]
 })
 export class TicketsComponent implements OnInit {
@@ -186,6 +215,31 @@ export class TicketsComponent implements OnInit {
   paying = signal(false);
   confirmCancel = false;
   cancelTarget: TicketResponse | null = null;
+
+  filterKeyword = '';
+  filterStatus = '';
+  filterMinPrice: number | '' = '';
+  filterMaxPrice: number | '' = '';
+
+  filteredTickets() {
+    return this.tickets().filter(tk => {
+      if (this.filterKeyword && !tk.eventTitle.toLowerCase().includes(this.filterKeyword.toLowerCase())) return false;
+      if (this.filterStatus && tk.status !== this.filterStatus) return false;
+      const total = tk.price * tk.quantity;
+      if (this.filterMinPrice !== '' && total < +this.filterMinPrice) return false;
+      if (this.filterMaxPrice !== '' && total > +this.filterMaxPrice) return false;
+      return true;
+    });
+  }
+
+  applyFilter() { /* triggers change detection via direct binding */ }
+
+  clearFilter() {
+    this.filterKeyword = '';
+    this.filterStatus = '';
+    this.filterMinPrice = '';
+    this.filterMaxPrice = '';
+  }
 
   payAmount = 0;
   payCurrency = 'INR';
@@ -228,6 +282,15 @@ export class TicketsComponent implements OnInit {
   processPayment() {
     const tk = this.paymentTarget();
     if (!tk || this.paying()) return;
+
+    // Free ticket — no payment needed, just confirm
+    if (this.payAmount === 0) {
+      this.toast.success('Free ticket confirmed!');
+      this.paymentTarget.set(null);
+      this.load();
+      return;
+    }
+
     this.paying.set(true);
     const req: CreatePaymentRequest = {
       ticketId: tk.id,
@@ -241,7 +304,13 @@ export class TicketsComponent implements OnInit {
         this.toast.success(`Payment of ₹${p.amount} ${p.currency} completed!`);
         this.paying.set(false);
         this.paymentTarget.set(null);
-        this.load();
+        // Immediately update the ticket in the list so Pay button disappears
+        this.tickets.update(list =>
+          list.map(t => t.id === tk.id
+            ? { ...t, status: 'Confirmed', payments: [...(t.payments || []), p] }
+            : t
+          )
+        );
       },
       error: (err) => {
         const msg = err?.error?.message || 'Payment failed. Please try again.';
@@ -253,19 +322,20 @@ export class TicketsComponent implements OnInit {
 
   cancelTicket() {
     if (!this.cancelTarget) return;
-    // Prevent cancellation if ticket has a completed payment
     if (this.cancelTarget.payments?.some(p => p.status === 'Completed')) {
       this.toast.error('Cannot cancel a ticket that has already been paid.');
       this.confirmCancel = false;
       this.cancelTarget = null;
       return;
     }
-    this.ticketApi.delete(this.cancelTarget.id).subscribe({
+    const id = this.cancelTarget.id;
+    this.ticketApi.delete(id).subscribe({
       next: () => {
         this.toast.success('Ticket cancelled successfully.');
+        // Remove from list immediately
+        this.tickets.update(list => list.filter(t => t.id !== id));
         this.confirmCancel = false;
         this.cancelTarget = null;
-        this.load();
       },
       error: () => {
         this.toast.error('Failed to cancel ticket.');
@@ -289,5 +359,10 @@ export class TicketsComponent implements OnInit {
 
   hasActivePayment(tk: TicketResponse): boolean {
     return tk.payments?.some(p => p.status === 'Completed' || p.status === 'Pending') ?? false;
+  }
+
+  isEventExpired(tk: TicketResponse): boolean {
+    if (!tk.eventEndDateTime) return false;
+    return new Date(tk.eventEndDateTime) <= new Date();
   }
 }

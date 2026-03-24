@@ -38,6 +38,8 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
         </select>
         <input class="form-input form-input--date" type="date" [(ngModel)]="startDate" (change)="onSearch()" placeholder="From">
         <input class="form-input form-input--date" type="date" [(ngModel)]="endDate" (change)="onSearch()" placeholder="To">
+        <input class="form-input form-input--price" type="number" [(ngModel)]="minPrice" (input)="onSearch()" placeholder="Min ₹" min="0">
+        <input class="form-input form-input--price" type="number" [(ngModel)]="maxPrice" (input)="onSearch()" placeholder="Max ₹" min="0">
         <button class="btn btn--ghost btn--sm" (click)="clearFilters()">Clear</button>
       </div>
 
@@ -111,6 +113,7 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
     .search-icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); font-size: .875rem; }
     .search-input { width: 100%; padding: .5rem .75rem .5rem 2.25rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; }
     .form-input--date { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; }
+    .form-input--price { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; width: 90px; }
     .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
     .event-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
@@ -150,6 +153,8 @@ export class EventListComponent implements OnInit {
   selectedCategory: any = '';
   startDate = '';
   endDate = '';
+  minPrice: number | '' = '';
+  maxPrice: number | '' = '';
   private searchTimer: any;
 
   ngOnInit() {
@@ -164,8 +169,11 @@ export class EventListComponent implements OnInit {
     if (this.selectedCategory) filter.categoryId = this.selectedCategory;
     if (this.startDate) filter.startDate = this.startDate;
     if (this.endDate) filter.endDate = this.endDate;
+    if (this.minPrice !== '') filter.minPrice = this.minPrice;
+    if (this.maxPrice !== '') filter.maxPrice = this.maxPrice;
 
-    const call = (this.keyword || this.selectedCategory || this.startDate || this.endDate)
+    const hasFilter = this.keyword || this.selectedCategory || this.startDate || this.endDate || this.minPrice !== '' || this.maxPrice !== '';
+    const call = hasFilter
       ? this.eventApi.search(filter)
       : this.eventApi.getAll(this.page(), this.pageSize);
 
@@ -186,6 +194,8 @@ export class EventListComponent implements OnInit {
     this.selectedCategory = '';
     this.startDate = '';
     this.endDate = '';
+    this.minPrice = '';
+    this.maxPrice = '';
     this.page.set(1);
     this.loadEvents();
   }

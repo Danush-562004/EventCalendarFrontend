@@ -6,6 +6,7 @@ const USER_KEY  = 'ec_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
+  // Use sessionStorage so login doesn't persist across browser sessions
   private _auth  = signal<AuthResponse | null>(this.loadAuth());
   private _token = signal<string | null>(this.loadToken());
 
@@ -14,7 +15,6 @@ export class AuthStore {
     const auth = this._auth();
     if (!auth?.user) return null;
     const u = auth.user;
-    // Compute fullName if not provided by backend
     return {
       ...u,
       fullName: u.fullName || `${u.firstName} ${u.lastName}`.trim() || u.username || ''
@@ -25,13 +25,16 @@ export class AuthStore {
   readonly currentUserId = computed(() => this._auth()?.user?.id ?? null);
 
   setAuth(auth: AuthResponse): void {
-    localStorage.setItem(TOKEN_KEY, auth.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(auth));
+    sessionStorage.setItem(TOKEN_KEY, auth.token);
+    sessionStorage.setItem(USER_KEY, JSON.stringify(auth));
     this._token.set(auth.token);
     this._auth.set(auth);
   }
 
   clearAuth(): void {
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
+    // Also clear any old localStorage entries
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     this._token.set(null);
@@ -39,12 +42,24 @@ export class AuthStore {
   }
 
   private loadToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+    // Migrate from localStorage if present (one-time cleanup)
+    const lsToken = localStorage.getItem(TOKEN_KEY);
+    if (lsToken) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+    return sessionStorage.getItem(TOKEN_KEY);
   }
 
   private loadAuth(): AuthResponse | null {
     try {
-      const raw = localStorage.getItem(USER_KEY);
+      // Migrate from localStorage if present (one-time cleanup)
+      const lsRaw = localStorage.getItem(USER_KEY);
+      if (lsRaw) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      }
+      const raw = sessionStorage.getItem(USER_KEY);
       return raw ? (JSON.parse(raw) as AuthResponse) : null;
     } catch {
       return null;

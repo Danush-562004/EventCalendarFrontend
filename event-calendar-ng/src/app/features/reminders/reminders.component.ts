@@ -82,7 +82,7 @@ import { ReminderResponse, EventResponse } from '../../core/models';
             </div>
             <div class="form-field">
               <label class="form-label">Date & Time *</label>
-              <input class="form-input" type="datetime-local" [(ngModel)]="f.reminderDateTime">
+              <input class="form-input" type="datetime-local" [(ngModel)]="f.reminderDateTime" [min]="minDateTime">
             </div>
             <div class="form-field">
               <label class="form-label">Notification Type</label>
@@ -158,6 +158,10 @@ export class RemindersComponent implements OnInit {
 
   f: any = { eventId: '', title: '', message: '', reminderDateTime: '', type: 'Email' };
 
+  get minDateTime(): string {
+    return new Date().toISOString().slice(0, 16);
+  }
+
   ngOnInit() {
     this.load();
     this.eventApi.getAll(1, 100).subscribe({ next: r => this.events.set(r.items) });
@@ -186,6 +190,9 @@ export class RemindersComponent implements OnInit {
   save() {
     if (!this.f.title || !this.f.reminderDateTime || (!this.editTarget && !this.f.eventId)) {
       this.toast.warning('Please fill all required fields.'); return;
+    }
+    if (new Date(this.f.reminderDateTime) <= new Date()) {
+      this.toast.error('Reminder time must be in the future.'); return;
     }
     this.saving.set(true);
     const call = this.editTarget

@@ -191,6 +191,7 @@ export interface TicketResponse {
   createdAt: string;
   eventId: number;
   eventTitle: string;
+  eventEndDateTime: string;
   userId: number;
   userFullName: string;
   payments: PaymentResponse[];
@@ -198,7 +199,7 @@ export interface TicketResponse {
 
 export interface CreateTicketRequest {
   eventId: number;
-  ticketType: TicketType;
+  type: TicketType;
   quantity: number;
   seatNumber?: string;
 }

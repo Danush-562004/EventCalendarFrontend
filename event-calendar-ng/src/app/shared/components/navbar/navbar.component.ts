@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthStore } from '../../../core/services/auth.store';
+import { ToastService } from '../toast/toast.service';
 
 @Component({
   selector: 'app-navbar',
@@ -48,6 +49,8 @@ import { AuthStore } from '../../../core/services/auth.store';
             }
           </div>
         } @else {
+          <button class="nav-link" (click)="requireLogin('My Tickets'); menuOpen.set(false)">My Tickets</button>
+          <button class="nav-link" (click)="requireLogin('Reminders'); menuOpen.set(false)">Reminders</button>
           <a routerLink="/auth/login"    class="btn btn--sm btn--ghost">Sign In</a>
           <a routerLink="/auth/register" class="btn btn--sm">Get Started</a>
         }
@@ -72,6 +75,7 @@ import { AuthStore } from '../../../core/services/auth.store';
       padding: .375rem .75rem; border-radius: 980px;
       color: #1d1d1f; font-size: .875rem; font-weight: 400;
       text-decoration: none; transition: background .15s;
+      background: none; border: none; cursor: pointer; font-family: inherit;
     }
     .nav-link:hover { background: rgba(0,0,0,.06); }
     .nav-link.active { color: #0071e3; font-weight: 500; }
@@ -128,6 +132,7 @@ import { AuthStore } from '../../../core/services/auth.store';
 export class NavbarComponent {
   auth     = inject(AuthStore);
   router   = inject(Router);
+  private toast = inject(ToastService);
   menuOpen = signal(false);
   dropOpen = signal(false);
 
@@ -136,6 +141,11 @@ export class NavbarComponent {
     if (!u) return '?';
     const name = u.fullName || u.username || '?';
     return name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  requireLogin(feature: string) {
+    this.toast.warning(`Please sign in to access ${feature}.`);
+    this.router.navigate(['/auth/login']);
   }
 
   logout(): void {
