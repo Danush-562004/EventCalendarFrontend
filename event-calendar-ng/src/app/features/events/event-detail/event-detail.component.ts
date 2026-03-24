@@ -37,6 +37,10 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
 
           <h1 class="event-detail__title">{{ event()!.title }}</h1>
 
+          @if (isEventPast()) {
+            <div class="past-event-banner">⏰ This event has ended — booking is no longer available.</div>
+          }
+
           <!-- Event Banner -->
           <div class="event-detail__banner" [style.background]="'linear-gradient(135deg, ' + (event()!.category?.colorCode || '#6366f1') + '33, ' + (event()!.category?.colorCode || '#6366f1') + '11)'">
             <span class="event-detail__banner-icon">{{ getCategoryIcon(event()!.category?.name) }}</span>
@@ -94,7 +98,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           </div>
 
           <!-- Book Ticket Section (users only) -->
-          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive) {
+          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
             <div class="ticket-section">
               <h2 class="section-h2">Book a Ticket</h2>
 
@@ -152,7 +156,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           }
 
           <!-- Set Reminder Section (all logged-in users) -->
-          @if (auth.isLoggedIn() && event()!.isActive) {
+          @if (auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
             <div class="ticket-section">
               <h2 class="section-h2">Set a Reminder</h2>
               <div class="ticket-form">
@@ -254,6 +258,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .price-summary__value { font-size: 1.125rem; font-weight: 800; color: var(--accent); }
     .mono { font-family: 'JetBrains Mono', monospace; font-size: .8125rem; }
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
+    .past-event-banner { background: rgba(255,59,48,.08); border: 1px solid rgba(255,59,48,.2); border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; color: #c0392b; margin-bottom: 1rem; font-weight: 500; }
   `]
 })
 export class EventDetailComponent implements OnInit {
@@ -366,6 +371,12 @@ export class EventDetailComponent implements OnInit {
   statusColor(status: string) {
     const m: Record<string, string> = { Reserved: 'blue', Confirmed: 'green', Cancelled: 'red', Attended: 'purple' };
     return m[status] || 'gray';
+  }
+
+  isEventPast(): boolean {
+    const ev = this.event();
+    if (!ev) return false;
+    return new Date(ev.endDateTime) <= new Date();
   }
 
   getCategoryIcon(name?: string): string {

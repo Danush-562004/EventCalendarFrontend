@@ -159,14 +159,14 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
     .ticket-card__actions { display: flex; gap: .5rem; }
     .payment-summary { display: flex; flex-direction: column; gap: .375rem; }
     .payment-row { display: flex; gap: .625rem; align-items: center; font-size: .8125rem; color: var(--muted); }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(6px); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(8px); }
     .modal {
       background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
       padding: 2rem; width: min(460px, 90vw); display: flex; flex-direction: column; gap: 1.25rem;
-      box-shadow: 0 24px 80px rgba(0,0,0,.5); animation: popIn .2s ease;
+      box-shadow: var(--shadow-lg); animation: popIn .2s ease;
     }
     @keyframes popIn { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .modal__title { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+    .modal__title { font-size: 1.25rem; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
     .modal__sub { font-size: .875rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
     .modal__actions { display: flex; justify-content: flex-end; gap: .75rem; padding-top: .25rem; }
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
@@ -197,9 +197,16 @@ export class TicketsComponent implements OnInit {
 
   load() {
     this.loading.set(true);
-    // Always load only the current user's own tickets (admin sees their own tickets too)
     this.ticketApi.getMyTickets().subscribe({
-      next: t => { this.tickets.set(t); this.loading.set(false); },
+      next: t => {
+        const now = new Date();
+        // Filter out cancelled tickets and tickets for past events
+        const active = t.filter(tk =>
+          tk.status !== 'Cancelled'
+        );
+        this.tickets.set(active);
+        this.loading.set(false);
+      },
       error: () => { this.toast.error('Failed to load tickets.'); this.loading.set(false); }
     });
   }
@@ -209,12 +216,9 @@ export class TicketsComponent implements OnInit {
       this.toast.info('This ticket is already paid.');
       return;
     }
-    if (tk.payments?.some(p => p.status === 'Pending')) {
-      this.toast.warning('This ticket has a pending payment.');
-      return;
-    }
     this.paymentTarget.set(tk);
-    this.payAmount = Number(tk.price) * tk.quantity;
+    // price is per-ticket, multiply by quantity for total
+    this.payAmount = +(+tk.price * tk.quantity).toFixed(2);
     this.payTxnId = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7).toUpperCase();
     this.payNotes = '';
     this.payCurrency = 'INR';
@@ -227,20 +231,21 @@ export class TicketsComponent implements OnInit {
     this.paying.set(true);
     const req: CreatePaymentRequest = {
       ticketId: tk.id,
-      amount: parseFloat(this.payAmount as any),
+      amount: this.payAmount,
       currency: this.payCurrency,
       method: this.payMethod,
       transactionId: this.payTxnId
     };
     this.paymentApi.create(req).subscribe({
       next: p => {
-        this.toast.success(`Payment of ${p.amount} ${p.currency} processed successfully!`);
+        this.toast.success(`Payment of ₹${p.amount} ${p.currency} completed!`);
         this.paying.set(false);
         this.paymentTarget.set(null);
         this.load();
       },
-      error: () => {
-        this.toast.error('Payment failed. Please try again.');
+      error: (err) => {
+        const msg = err?.error?.message || 'Payment failed. Please try again.';
+        this.toast.error(msg);
         this.paying.set(false);
       }
     });

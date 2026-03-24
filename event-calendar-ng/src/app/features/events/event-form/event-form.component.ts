@@ -81,14 +81,14 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
               <div class="form-grid">
                 <div class="form-field">
                   <label class="form-label">Start Date & Time *</label>
-                  <input class="form-input" type="datetime-local" formControlName="startDateTime">
+                  <input class="form-input" type="datetime-local" formControlName="startDateTime" [min]="minDateTime">
                   @if (f['startDateTime'].invalid && f['startDateTime'].touched) {
                     <span class="form-error">Required</span>
                   }
                 </div>
                 <div class="form-field">
                   <label class="form-label">End Date & Time *</label>
-                  <input class="form-input" type="datetime-local" formControlName="endDateTime">
+                  <input class="form-input" type="datetime-local" formControlName="endDateTime" [min]="minDateTime">
                   @if (f['endDateTime'].invalid && f['endDateTime'].touched) {
                     <span class="form-error">Required</span>
                   }
@@ -162,6 +162,9 @@ export class EventFormComponent implements OnInit {
   categories = signal<CategoryResponse[]>([]);
   venues = signal<VenueResponse[]>([]);
   private eventId?: number;
+
+  // Minimum datetime = now (prevents selecting past dates)
+  readonly minDateTime = new Date().toISOString().slice(0, 16);
 
   form = this.fb.group({
     title: ['', [Validators.required, Validators.maxLength(300)]],

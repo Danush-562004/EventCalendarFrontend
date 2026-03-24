@@ -21,11 +21,10 @@ export const routes: Routes = [
     ]
   },
 
-  // Protected
+  // Dashboard — public (shows events/venues; auth-gated sections handled in component)
   {
     path: 'dashboard',
-    loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
+    loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
   {
     path: 'events',
