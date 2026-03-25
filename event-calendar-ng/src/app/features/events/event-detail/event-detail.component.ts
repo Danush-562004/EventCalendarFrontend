@@ -42,7 +42,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           }
 
           <!-- Event Banner -->
-          <div class="event-detail__banner" [style.background]="'linear-gradient(135deg, ' + (event()!.category?.colorCode || '#6366f1') + '33, ' + (event()!.category?.colorCode || '#6366f1') + '11)'">
+          <div class="event-detail__banner" [style.background]="getBannerGradient(event()!.category?.name, event()!.category?.colorCode)">
             <span class="event-detail__banner-icon">{{ getCategoryIcon(event()!.category?.name) }}</span>
             <div class="event-detail__banner-overlay">
               <span class="event-detail__banner-date">{{ event()!.startDateTime | date:'EEEE, MMMM d, y' }}</span>
@@ -50,8 +50,8 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           </div>
 
           <div class="event-detail__meta-bar">
-            <span>📅 {{ event()!.startDateTime | date:'EEEE, MMMM d, y' }}</span>
-            <span>🕐 {{ event()!.startDateTime | date:'h:mm a' }} – {{ event()!.endDateTime | date:'h:mm a' }}</span>
+            <span>📅 {{ event()!.startDateTime | date:'EEEE, MMMM d, y · h:mm a' }}</span>
+            <span>🏁 Ends {{ event()!.endDateTime | date:'EEEE, MMMM d, y · h:mm a' }}</span>
             @if (event()!.venue) {
               <span>📍 {{ event()!.venue!.name }}, {{ event()!.venue!.city }}</span>
             } @else if (event()!.location) {
@@ -220,10 +220,10 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     </div>
   `,
   styles: [`
-    .event-detail__banner { height: 160px; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-    .event-detail__banner-icon { font-size: 5rem; opacity: .5; }
-    .event-detail__banner-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: .75rem 1rem; background: linear-gradient(transparent, rgba(0,0,0,.4)); }
-    .event-detail__banner-date { font-size: .8125rem; color: rgba(255,255,255,.85); font-weight: 600; }
+    .event-detail__banner { height: 220px; border-radius: 16px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .event-detail__banner-icon { font-size: 6rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2)); }
+    .event-detail__banner-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem 1.25rem; background: linear-gradient(transparent, rgba(0,0,0,.55)); }
+    .event-detail__banner-date { font-size: .9375rem; color: rgba(255,255,255,.92); font-weight: 600; }
     .back-link { display: inline-flex; align-items: center; gap: .375rem; color: var(--muted); font-size: .875rem; text-decoration: none; margin-bottom: 1.5rem; }
     .back-link:hover { color: var(--text); }
     .event-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; }
@@ -380,6 +380,28 @@ export class EventDetailComponent implements OnInit {
     const ev = this.event();
     if (!ev) return false;
     return new Date(ev.endDateTime) <= new Date();
+  }
+
+  getBannerGradient(name?: string, color?: string): string {
+    const c = color || '#6366f1';
+    const gradients: Record<string, string> = {
+      music:    `linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, ${c}88 100%)`,
+      sport:    `linear-gradient(135deg, #134e5e 0%, #71b280 100%)`,
+      tech:     `linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)`,
+      art:      `linear-gradient(135deg, #f093fb 0%, #f5576c 100%)`,
+      food:     `linear-gradient(135deg, #f7971e 0%, #ffd200 100%)`,
+      business: `linear-gradient(135deg, #1c3c5a 0%, #2d6a9f 100%)`,
+      health:   `linear-gradient(135deg, #11998e 0%, #38ef7d 100%)`,
+      education:`linear-gradient(135deg, #4776e6 0%, #8e54e9 100%)`,
+      film:     `linear-gradient(135deg, #232526 0%, #414345 100%)`,
+      travel:   `linear-gradient(135deg, #2980b9 0%, #6dd5fa 80%, #fff 100%)`,
+    };
+    if (!name) return `linear-gradient(135deg, ${c}55, ${c}22)`;
+    const n = name.toLowerCase();
+    for (const [key, grad] of Object.entries(gradients)) {
+      if (n.includes(key)) return grad;
+    }
+    return `linear-gradient(135deg, ${c}88 0%, ${c}33 100%)`;
   }
 
   getCategoryIcon(name?: string): string {

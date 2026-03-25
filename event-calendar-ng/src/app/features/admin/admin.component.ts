@@ -49,7 +49,7 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                 <th>#</th><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                @for (u of filteredUsers(); track u.id) {
+                @for (u of users(); track u.id) {
                   <tr>
                     <td>{{ u.id }}</td>
                     <td><strong>{{ u.firstName }} {{ u.lastName }}</strong></td>
@@ -62,29 +62,27 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                     </td>
                   </tr>
                 }
-                @if (filteredUsers().length === 0) {
+                @if (users().length === 0) {
                   <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">No users match "{{ userSearch }}"</td></tr>
                 }
               </tbody>
             </table>
           </div>
-          @if (!userSearch) {
-            <app-pagination [currentPage]="usersPage()" [pageSize]="pageSize" [totalCount]="usersTotalCount()" (pageChange)="onUsersPage($event)" />
-          }
+          <app-pagination [currentPage]="usersPage()" [pageSize]="pageSize" [totalCount]="usersTotalCount()" (pageChange)="onUsersPage($event)" />
         }
       }
 
       @if (tab() === 'payments') {
         <!-- Payment status filter -->
         <div class="filter-row">
-          <select class="form-select filter-select filter-select--half" [(ngModel)]="paymentStatusFilter" (change)="applyPaymentFilter()">
+          <select class="form-select filter-select filter-select--half" [(ngModel)]="paymentStatusFilter" (change)="paymentsPage.set(1); loadPayments()">
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
             <option value="Completed">Completed</option>
             <option value="Failed">Failed</option>
           </select>
           @if (paymentStatusFilter) {
-            <button class="btn btn--ghost btn--sm" (click)="paymentStatusFilter = ''; applyPaymentFilter()">Clear</button>
+            <button class="btn btn--ghost btn--sm" (click)="paymentStatusFilter = ''; paymentsPage.set(1); loadPayments()">Clear</button>
           }
         </div>
         @if (paymentsLoading()) {
@@ -96,7 +94,7 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                 <th>#</th><th>Ticket ID</th><th>Amount</th><th>Currency</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                @for (p of filteredPayments(); track p.id) {
+                @for (p of payments(); track p.id) {
                   <tr>
                     <td>{{ p.id }}</td>
                     <td><span class="mono">{{ p.ticketId }}</span></td>
@@ -321,36 +319,14 @@ export class AdminComponent implements OnInit {
   usersPage       = signal(1);
   usersTotalCount = signal(0);
   userSearch      = '';
+  private userSearchTimer: any;
   deleteUserTarget: UserResponse | null = null;
   confirmDeleteUser = false;
 
-  /** Fuzzy filter — matches any contiguous subsequence of chars in username/name/email */
-  filteredUsers(): UserResponse[] {
-    const q = this.userSearch.trim().toLowerCase();
-    if (!q) return this.users();
-    return this.users().filter(u => {
-      const haystack = `${u.username} ${u.firstName} ${u.lastName} ${u.email}`.toLowerCase();
-      return this.fuzzyMatch(q, haystack);
-    });
-  }
-
-  fuzzyMatch(needle: string, haystack: string): boolean {
-    let ni = 0;
-    for (let i = 0; i < haystack.length && ni < needle.length; i++) {
-      if (haystack[i] === needle[ni]) ni++;
-    }
-    return ni === needle.length;
-  }
-
   onUserSearch() {
-    // If searching, load all users so filter works across all pages
-    if (this.userSearch && this.users().length < this.usersTotalCount()) {
-      this.usersLoading.set(true);
-      this.userApi.getAll(1, 1000).subscribe({
-        next: r => { this.users.set(r.items); this.usersTotalCount.set(r.totalCount); this.usersLoading.set(false); },
-        error: () => this.usersLoading.set(false)
-      });
-    }
+    clearTimeout(this.userSearchTimer);
+    this.usersPage.set(1);
+    this.userSearchTimer = setTimeout(() => this.loadUsers(), 350);
   }
 
   paymentsLoading    = signal(false);
@@ -366,21 +342,6 @@ export class AdminComponent implements OnInit {
   payEditTxnId  = '';
   payEditNotes  = '';
 
-  filteredPayments(): PaymentResponse[] {
-    if (!this.paymentStatusFilter) return this.payments();
-    return this.payments().filter(p => p.status === this.paymentStatusFilter);
-  }
-
-  applyPaymentFilter() {
-    if (this.paymentStatusFilter && this.payments().length < this.paymentsTotalCount()) {
-      this.paymentsLoading.set(true);
-      this.paymentApi.getAll(1, 1000).subscribe({
-        next: r => { this.payments.set(r.items); this.paymentsTotalCount.set(r.totalCount); this.paymentsLoading.set(false); },
-        error: () => this.paymentsLoading.set(false)
-      });
-    }
-  }
-
   ticketsLoading    = signal(false);
   allTickets        = signal<TicketResponse[]>([]);
   ticketsPage       = signal(1);
@@ -388,21 +349,6 @@ export class AdminComponent implements OnInit {
   ticketStatusFilter = '';
   deleteTicketTarget: TicketResponse | null = null;
   confirmDeleteTicket = false;
-
-  filteredTickets(): TicketResponse[] {
-    if (!this.ticketStatusFilter) return this.allTickets();
-    return this.allTickets().filter(t => t.status === this.ticketStatusFilter);
-  }
-
-  applyTicketFilter() {
-    if (this.ticketStatusFilter && this.allTickets().length < this.ticketsTotalCount()) {
-      this.ticketsLoading.set(true);
-      this.ticketApi.getAll(1, 1000).subscribe({
-        next: r => { this.allTickets.set(r.items); this.ticketsTotalCount.set(r.totalCount); this.ticketsLoading.set(false); },
-        error: () => this.ticketsLoading.set(false)
-      });
-    }
-  }
 
   auditLoading    = signal(false);
   auditLogs       = signal<AuditLogResponse[]>([]);
@@ -425,7 +371,7 @@ export class AdminComponent implements OnInit {
 
   loadUsers() {
     this.usersLoading.set(true);
-    this.userApi.getAll(this.usersPage(), this.pageSize).subscribe({
+    this.userApi.getAll(this.usersPage(), this.pageSize, this.userSearch || undefined).subscribe({
       next: r => { this.users.set(r.items); this.usersTotalCount.set(r.totalCount); this.usersLoading.set(false); },
       error: () => this.usersLoading.set(false)
     });
@@ -433,7 +379,7 @@ export class AdminComponent implements OnInit {
 
   loadPayments() {
     this.paymentsLoading.set(true);
-    this.paymentApi.getAll(this.paymentsPage(), this.pageSize).subscribe({
+    this.paymentApi.getAll(this.paymentsPage(), this.pageSize, this.paymentStatusFilter || undefined).subscribe({
       next: r => { this.payments.set(r.items); this.paymentsTotalCount.set(r.totalCount); this.paymentsLoading.set(false); },
       error: () => this.paymentsLoading.set(false)
     });
@@ -441,7 +387,7 @@ export class AdminComponent implements OnInit {
 
   loadTickets() {
     this.ticketsLoading.set(true);
-    this.ticketApi.getAll(this.ticketsPage(), this.pageSize).subscribe({
+    this.ticketApi.getAll(this.ticketsPage(), this.pageSize, this.ticketStatusFilter || undefined).subscribe({
       next: r => { this.allTickets.set(r.items); this.ticketsTotalCount.set(r.totalCount); this.ticketsLoading.set(false); },
       error: () => this.ticketsLoading.set(false)
     });

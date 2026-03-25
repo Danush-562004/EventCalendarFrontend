@@ -1,89 +1,43 @@
 import { Routes } from '@angular/router';
 import { authGuard, adminGuard, guestGuard, userGuard } from './core/guards/auth.guard';
 
+import { LoginComponent }       from './features/auth/login/login.component';
+import { RegisterComponent }    from './features/auth/register/register.component';
+import { VenuesComponent }      from './features/venues/venues.component';
+import { EventListComponent }   from './features/events/event-list/event-list.component';
+import { EventFormComponent }   from './features/events/event-form/event-form.component';
+import { EventDetailComponent } from './features/events/event-detail/event-detail.component';
+import { DashboardComponent }   from './features/dashboard/dashboard.component';
+import { AdminComponent }       from './features/admin/admin.component';
+import { TicketsComponent }     from './features/tickets/tickets.component';
+import { RemindersComponent }   from './features/reminders/reminders.component';
+import { CategoriesComponent }  from './features/categories/categories.component';
+import { ProfileComponent }     from './features/users/profile.component';
+import { NotFoundComponent }    from './features/not-found/not-found.component';
+
 export const routes: Routes = [
-  // Default landing — venues page (public)
   { path: '', redirectTo: 'venues', pathMatch: 'full' },
 
   // Auth (guest only)
-  {
-    path: 'auth',
-    children: [
-      {
-        path: 'login',
-        loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent),
-        canActivate: [guestGuard]
-      },
-      {
-        path: 'register',
-        loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent),
-        canActivate: [guestGuard]
-      }
-    ]
-  },
+  { path: 'auth/login',    component: LoginComponent,    canActivate: [guestGuard] },
+  { path: 'auth/register', component: RegisterComponent, canActivate: [guestGuard] },
 
-  // Public — no login required
-  {
-    path: 'venues',
-    loadComponent: () => import('./features/venues/venues.component').then(m => m.VenuesComponent)
-  },
-  {
-    path: 'events',
-    loadComponent: () => import('./features/events/event-list/event-list.component').then(m => m.EventListComponent)
-  },
-  // events/new MUST be before events/:id so the router doesn't treat "new" as an id
-  {
-    path: 'events/new',
-    loadComponent: () => import('./features/events/event-form/event-form.component').then(m => m.EventFormComponent),
-    canActivate: [authGuard, adminGuard]
-  },
-  {
-    path: 'events/:id',
-    loadComponent: () => import('./features/events/event-detail/event-detail.component').then(m => m.EventDetailComponent)
-  },
-  {
-    path: 'events/:id/edit',
-    loadComponent: () => import('./features/events/event-form/event-form.component').then(m => m.EventFormComponent),
-    canActivate: [authGuard, adminGuard]
-  },
+  // Public
+  { path: 'venues', component: VenuesComponent },
+  { path: 'events', component: EventListComponent },
 
-  // Dashboard — requires login
-  {
-    path: 'dashboard',
-    loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
-  },
+  // events/new MUST be before events/:id
+  { path: 'events/new',      component: EventFormComponent,   canActivate: [authGuard, adminGuard] },
+  { path: 'events/:id',      component: EventDetailComponent },
+  { path: 'events/:id/edit', component: EventFormComponent,   canActivate: [authGuard, adminGuard] },
 
-  // Admin only
-  {
-    path: 'admin',
-    loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent),
-    canActivate: [authGuard, adminGuard]
-  },
+  // Requires login
+  { path: 'dashboard',  component: DashboardComponent,  canActivate: [authGuard] },
+  { path: 'admin',      component: AdminComponent,       canActivate: [authGuard, adminGuard] },
+  { path: 'tickets',    component: TicketsComponent,     canActivate: [authGuard] },
+  { path: 'reminders',  component: RemindersComponent,   canActivate: [authGuard, userGuard] },
+  { path: 'categories', component: CategoriesComponent,  canActivate: [authGuard] },
+  { path: 'profile',    component: ProfileComponent,     canActivate: [authGuard] },
 
-  // User only
-  {
-    path: 'tickets',
-    loadComponent: () => import('./features/tickets/tickets.component').then(m => m.TicketsComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'reminders',
-    loadComponent: () => import('./features/reminders/reminders.component').then(m => m.RemindersComponent),
-    canActivate: [authGuard, userGuard]
-  },
-
-  // Auth required
-  {
-    path: 'categories',
-    loadComponent: () => import('./features/categories/categories.component').then(m => m.CategoriesComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'profile',
-    loadComponent: () => import('./features/users/profile.component').then(m => m.ProfileComponent),
-    canActivate: [authGuard]
-  },
-
-  { path: '**', loadComponent: () => import('./features/not-found/not-found.component').then(m => m.NotFoundComponent) }
+  { path: '**', component: NotFoundComponent }
 ];

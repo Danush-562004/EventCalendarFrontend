@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -23,47 +23,71 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
           <a routerLink="/events/new" class="btn">+ Create Event</a>
         }
       </div>
-
-      <!-- Filters -->
-      <div class="filter-bar">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input class="search-input" [(ngModel)]="keyword" placeholder="Search events…" (input)="onSearch()">
+      <div class="top-row">
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" [(ngModel)]="keyword" placeholder="Search events…" (input)="onSearch()">
+          </div>
+          <select class="filter-cat" [(ngModel)]="selectedCategory" (change)="onSearch()">
+            <option value="">All Categories</option>
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+          <input class="price-input" type="number" [(ngModel)]="minPrice" (input)="onSearch()" placeholder="Min ₹" min="0">
+          <input class="price-input" type="number" [(ngModel)]="maxPrice" (input)="onSearch()" placeholder="Max ₹" min="0">
+          <button class="btn btn--ghost btn--sm" (click)="clearFilters()">Clear</button>
         </div>
-        <select class="form-select" [(ngModel)]="selectedCategory" (change)="onSearch()">
-          <option value="">All Categories</option>
-          @for (cat of categories(); track cat.id) {
-            <option [value]="cat.id">{{ cat.name }}</option>
+        <div class="cal-panel">
+          <div class="cal-header">
+            <button class="cal-nav" (click)="prevMonth()">&#8249;</button>
+            <span class="cal-month">{{ calMonthLabel() }}</span>
+            <button class="cal-nav" (click)="nextMonth()">&#8250;</button>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dow">Su</div><div class="cal-dow">Mo</div><div class="cal-dow">Tu</div>
+            <div class="cal-dow">We</div><div class="cal-dow">Th</div><div class="cal-dow">Fr</div>
+            <div class="cal-dow">Sa</div>
+            @for (cell of calCells(); track cell.key) {
+              <div class="cal-cell"
+                [class.cal-cell--empty]="!cell.day"
+                [class.cal-cell--past]="cell.isPast"
+                [class.cal-cell--has-event]="cell.hasEvent && !cell.isPast"
+                [class.cal-cell--selected]="cell.day !== null && cell.day === selectedCalDay()"
+                [class.cal-cell--today]="cell.isToday"
+                (click)="cell.day && !cell.isPast ? selectCalDay(cell.day) : null">
+                <span class="cal-num">{{ cell.day ?? '' }}</span>
+                @if (cell.hasEvent && !cell.isPast) { <span class="cal-dot"></span> }
+              </div>
+            }
+          </div>
+          @if (selectedCalDay()) {
+            <div class="cal-selected-label">
+              &#128197; {{ calSelectedLabel() }}
+              <button class="cal-clear" (click)="clearCalDay()">&#x2715;</button>
+            </div>
           }
-        </select>
-        <input class="form-input form-input--date" type="date" [(ngModel)]="startDate" (change)="onSearch()" placeholder="From">
-        <input class="form-input form-input--date" type="date" [(ngModel)]="endDate" (change)="onSearch()" placeholder="To">
-        <input class="form-input form-input--price" type="number" [(ngModel)]="minPrice" (input)="onSearch()" placeholder="Min ₹" min="0">
-        <input class="form-input form-input--price" type="number" [(ngModel)]="maxPrice" (input)="onSearch()" placeholder="Max ₹" min="0">
-        <button class="btn btn--ghost btn--sm" (click)="clearFilters()">Clear</button>
+        </div>
       </div>
-
-      @if (loading()) {
-        <app-loading text="Loading events…" />
-      } @else {
+      <div class="events-wrap" [class.events-wrap--loading]="loading()">
         <div class="events-grid">
           @for (ev of events(); track ev.id) {
             <a [routerLink]="['/events', ev.id]" class="event-card">
-              <div class="event-card__img" [style.background]="'linear-gradient(135deg, ' + (ev.category?.colorCode || '#6366f1') + '33, ' + (ev.category?.colorCode || '#6366f1') + '11)'">
+              <div class="event-card__img" [style.background]="getCardBg(ev.category?.name, ev.category?.colorCode)">
                 <span class="event-card__img-icon">{{ getCategoryIcon(ev.category?.name) }}</span>
+                <div class="event-card__img-overlay"></div>
               </div>
               <div class="event-card__top" [style.border-top-color]="ev.category?.colorCode">
-                <span class="event-card__cat" [style.background]="ev.category?.colorCode + '22'" [style.color]="ev.category?.colorCode">
-                  {{ ev.category?.name }}
-                </span>
-                <span class="event-card__status" [class]="ev.isActive ? 'badge badge--green' : 'badge badge--red'">
-                  {{ ev.isActive ? 'Active' : 'Inactive' }}
+                <span class="event-card__cat" [style.background]="ev.category?.colorCode + '22'" [style.color]="ev.category?.colorCode">{{ ev.category?.name }}</span>
+                <span [class]="isExpired(ev) ? 'badge badge--red' : (ev.isActive ? 'badge badge--green' : 'badge badge--red')">
+                  {{ isExpired(ev) ? 'Expired' : (ev.isActive ? 'Active' : 'Inactive') }}
                 </span>
               </div>
               <div class="event-card__body">
                 <h3 class="event-card__title">{{ ev.title }}</h3>
                 @if (ev.description) {
-                  <p class="event-card__desc">{{ ev.description | slice:0:100 }}{{ ev.description.length > 100 ? '…' : '' }}</p>
+                  <p class="event-card__desc">{{ ev.description | slice:0:90 }}{{ ev.description.length > 90 ? '…' : '' }}</p>
                 }
                 <div class="event-card__meta">
                   <span>📅 {{ ev.startDateTime | date:'MMM d, y' }}</span>
@@ -76,53 +100,81 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
               <div class="event-card__footer">
                 <span class="event-card__price">{{ ev.price > 0 ? '₹' + (ev.price | number) : 'Free' }}</span>
                 <span class="event-card__seats">
-                  @if (ev.maxAttendees > 0) {
-                    🎟 {{ ev.availableSeats }} left
-                  } @else {
-                    🎫 {{ ev.ticketCount }} booked
-                  }
+                  @if (ev.maxAttendees > 0) { 🎟 {{ ev.availableSeats }} left }
+                  @else { 🎫 {{ ev.ticketCount }} booked }
                 </span>
               </div>
             </a>
           } @empty {
             <div class="empty-full">
-              <span class="empty-icon">📭</span>
-              <p>No events found</p>
-              @if (auth.isAdmin()) {
-                <a routerLink="/events/new" class="btn btn--sm">Create First Event</a>
+              @if (selectedCalDay()) {
+                <!-- Calendar empty state cartoon -->
+                <div class="empty-cartoon">
+                  <div class="empty-ghost">
+                    <div class="eg-body">
+                      <div class="eg-eye eg-eye--l"></div>
+                      <div class="eg-eye eg-eye--r"></div>
+                      <div class="eg-mouth"></div>
+                    </div>
+                    <div class="eg-tail"></div>
+                    <div class="eg-shadow"></div>
+                  </div>
+                </div>
+                <p class="empty-title">Oops! No events on this date</p>
+                <p class="empty-sub">Try selecting a different day or clear the date filter.</p>
+                <button class="btn btn--ghost btn--sm" (click)="clearCalDay()">Clear Date Filter</button>
+              } @else {
+                <span class="empty-icon">📭</span>
+                <p>{{ loading() ? 'Loading…' : 'No events found' }}</p>
+                @if (!loading() && auth.isAdmin()) {
+                  <a routerLink="/events/new" class="btn btn--sm">Create First Event</a>
+                }
               }
             </div>
           }
         </div>
-
-        <app-pagination
-          [currentPage]="page()"
-          [pageSize]="pageSize"
-          [totalCount]="totalCount()"
-          (pageChange)="onPageChange($event)"
-        />
-      }
+      </div>
+      <app-pagination [currentPage]="page()" [pageSize]="pageSize" [totalCount]="totalCount()" (pageChange)="onPageChange($event)" />
     </div>
   `,
   styles: [`
-    .filter-bar {
-      display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem;
-      background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem;
-    }
-    .search-wrap { position: relative; flex: 1; min-width: 200px; }
-    .search-icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); font-size: .875rem; }
-    .search-input { width: 100%; padding: .5rem .75rem .5rem 2.25rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; }
-    .form-input--date { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; }
-    .form-input--price { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; width: 90px; }
-    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
-    .event-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-      border-top: 3px solid transparent; overflow: hidden; text-decoration: none; color: inherit;
-      display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s;
-    }
-    .event-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
-    .event-card__img { height: 120px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-    .event-card__img-icon { font-size: 3rem; opacity: .7; }
+    .top-row { display: flex; gap: 1.25rem; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .filter-bar { flex: 1; min-width: 260px; display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
+    .search-wrap { position: relative; flex: 1; min-width: 160px; }
+    .search-icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); font-size: .875rem; pointer-events: none; }
+    .search-input { width: 100%; padding: .5rem .75rem .5rem 2.25rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; font-family: inherit; }
+    .filter-cat { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; font-family: inherit; min-width: 130px; }
+    .price-input { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; width: 80px; font-family: inherit; }
+    .cal-panel { width: 252px; flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .625rem; }
+    .cal-month { font-size: .9rem; font-weight: 700; color: var(--text); }
+    .cal-nav { background: none; border: none; cursor: pointer; font-size: 1.125rem; color: var(--muted); width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background .12s; }
+    .cal-nav:hover { background: var(--surface2); color: var(--text); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+    .cal-dow { text-align: center; font-size: .625rem; font-weight: 700; color: var(--muted); padding: .25rem 0; letter-spacing: .04em; }
+    .cal-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 30px; border-radius: 6px; cursor: pointer; transition: background .1s; user-select: none; }
+    .cal-cell:hover:not(.cal-cell--empty) { background: var(--surface2); }
+    .cal-cell--empty { cursor: default; pointer-events: none; }
+    .cal-cell--past { cursor: default; pointer-events: none; }
+    .cal-cell--past .cal-num { color: var(--muted); opacity: .4; }
+    .cal-num { font-size: .8rem; line-height: 1; color: var(--text); }
+    .cal-cell--today .cal-num { font-weight: 800; color: var(--accent); }
+    .cal-cell--has-event .cal-num { font-weight: 600; }
+    .cal-cell--selected { background: var(--accent) !important; border-radius: 6px; }
+    .cal-cell--selected .cal-num { color: #fff !important; font-weight: 700; }
+    .cal-dot { width: 4px; height: 4px; background: var(--accent); border-radius: 50%; margin-top: 1px; }
+    .cal-cell--selected .cal-dot { background: rgba(255,255,255,.65); }
+    .cal-selected-label { margin-top: .625rem; font-size: .8rem; color: var(--accent); font-weight: 600; display: flex; align-items: center; justify-content: space-between; padding: .3rem .5rem; background: rgba(0,113,227,.08); border-radius: 8px; }
+    .cal-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .75rem; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+    .cal-clear:hover { color: var(--danger); background: rgba(255,59,48,.08); }
+    .events-wrap { transition: opacity .2s; }
+    .events-wrap--loading { opacity: .45; pointer-events: none; }
+    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; min-height: 200px; }
+    .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; border-top: 3px solid transparent; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .event-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
+    .event-card__img { height: 140px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .event-card__img-icon { font-size: 3.5rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,.25)); position: relative; z-index: 1; }
+    .event-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,.18)); }
     .event-card__top { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1rem .5rem; }
     .event-card__cat { font-size: .75rem; font-weight: 600; padding: .25rem .625rem; border-radius: 6px; }
     .event-card__body { flex: 1; padding: .5rem 1rem .875rem; }
@@ -133,50 +185,152 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
     .event-card__footer { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; border-top: 1px solid var(--border); }
     .event-card__price { font-size: .875rem; font-weight: 700; color: var(--accent); }
     .event-card__seats { font-size: .8125rem; font-weight: 600; color: var(--muted); }
-    .empty-full { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); text-align: center; }
+    .empty-full { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 3rem; color: var(--muted); text-align: center; }
     .empty-icon { font-size: 3rem; }
+    .empty-title { font-size: 1.125rem; font-weight: 700; color: var(--text); }
+    .empty-sub { font-size: .875rem; color: var(--muted); }
+    /* Ghost cartoon */
+    .empty-cartoon { margin-bottom: .5rem; }
+    .empty-ghost { position: relative; width: 72px; height: 90px; margin: 0 auto; animation: ghostFloat 3s ease-in-out infinite; }
+    @keyframes ghostFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .eg-body { width: 72px; height: 72px; background: var(--accent); border-radius: 36px 36px 0 0; position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .eg-eye { width: 10px; height: 12px; background: #fff; border-radius: 50%; position: relative; top: -4px; }
+    .eg-eye::after { content:''; position: absolute; width: 4px; height: 5px; background: #1d1d1f; border-radius: 50%; top: 4px; left: 3px; }
+    .eg-mouth { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); width: 18px; height: 7px; border: 2px solid #fff; border-top: none; border-radius: 0 0 9px 9px; }
+    .eg-tail { height: 18px; background: var(--accent); clip-path: polygon(0 0,20% 0,20% 100%,40% 55%,60% 100%,80% 55%,100% 100%,100% 0); }
+    .eg-shadow { width: 52px; height: 8px; background: rgba(0,113,227,.15); border-radius: 50%; margin: 3px auto 0; animation: ghostShadow 3s ease-in-out infinite; }
+    @keyframes ghostShadow { 0%,100% { transform: scaleX(1); opacity:.4; } 50% { transform: scaleX(.7); opacity:.2; } }
+    @media(max-width: 700px) { .top-row { flex-direction: column; } .cal-panel { width: 100%; } }
   `]
 })
 export class EventListComponent implements OnInit {
   auth = inject(AuthStore);
-  private eventApi = inject(EventApiService);
+  private eventApi    = inject(EventApiService);
   private categoryApi = inject(CategoryApiService);
 
-  loading = signal(true);
-  events = signal<EventResponse[]>([]);
-  categories = signal<CategoryResponse[]>([]);
-  totalCount = signal(0);
-  page = signal(1);
-  pageSize = 20;
+  loading          = signal(false);
+  events           = signal<EventResponse[]>([]);
+  allEvents        = signal<EventResponse[]>([]);
+  categories       = signal<CategoryResponse[]>([]);
+  totalCount       = signal(0);
+  page             = signal(1);
+  pageSize         = 20;
 
-  keyword = '';
+  keyword          = '';
   selectedCategory: any = '';
-  startDate = '';
-  endDate = '';
   minPrice: number | '' = '';
   maxPrice: number | '' = '';
   private searchTimer: any;
 
+  private readonly todayDate = new Date();
+  calYear        = signal(this.todayDate.getFullYear());
+  calMonth       = signal(this.todayDate.getMonth());
+  selectedCalDay = signal<number | null>(null);
+
+  calMonthLabel = computed(() =>
+    new Date(this.calYear(), this.calMonth(), 1)
+      .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  );
+
+  calSelectedLabel = computed(() => {
+    const d = this.selectedCalDay();
+    if (!d) return '';
+    return new Date(this.calYear(), this.calMonth(), d)
+      .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  });
+
+  calCells = computed(() => {
+    const year  = this.calYear();
+    const month = this.calMonth();
+    const firstDow    = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const eventDays   = new Set<number>();
+    for (const ev of this.allEvents()) {
+      const d = new Date(ev.startDateTime);
+      if (d.getFullYear() === year && d.getMonth() === month) eventDays.add(d.getDate());
+    }
+
+    // Today's date components for past-day comparison
+    const todayY = this.todayDate.getFullYear();
+    const todayM = this.todayDate.getMonth();
+    const todayD = this.todayDate.getDate();
+
+    const cells: { key: string; day: number | null; hasEvent: boolean; isToday: boolean; isPast: boolean }[] = [];
+    for (let i = 0; i < firstDow; i++) cells.push({ key: `e${i}`, day: null, hasEvent: false, isToday: false, isPast: false });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday = d === todayD && month === todayM && year === todayY;
+      // A day is past if it's before today (not today itself)
+      const isPast = year < todayY
+        || (year === todayY && month < todayM)
+        || (year === todayY && month === todayM && d < todayD);
+      cells.push({ key: `d${d}`, day: d, hasEvent: eventDays.has(d), isToday, isPast });
+    }
+    return cells;
+  });
+
+  prevMonth() {
+    const hadFilter = this.selectedCalDay() !== null;
+    if (this.calMonth() === 0) { this.calMonth.set(11); this.calYear.update(y => y - 1); }
+    else { this.calMonth.update(v => v - 1); }
+    this.selectedCalDay.set(null);
+    // Only reload if a date was selected — clears the date filter
+    if (hadFilter) { this.page.set(1); this.loadEvents(); }
+  }
+
+  nextMonth() {
+    const hadFilter = this.selectedCalDay() !== null;
+    if (this.calMonth() === 11) { this.calMonth.set(0); this.calYear.update(y => y + 1); }
+    else { this.calMonth.update(v => v + 1); }
+    this.selectedCalDay.set(null);
+    // Only reload if a date was selected — clears the date filter
+    if (hadFilter) { this.page.set(1); this.loadEvents(); }
+  }
+
+  selectCalDay(day: number) {
+    // Block past days
+    const year  = this.calYear();
+    const month = this.calMonth();
+    const clicked = new Date(year, month, day);
+    const today   = new Date(this.todayDate.getFullYear(), this.todayDate.getMonth(), this.todayDate.getDate());
+    if (clicked < today) return; // past date — do nothing
+
+    this.selectedCalDay.set(this.selectedCalDay() === day ? null : day);
+    this.page.set(1);
+    this.loadEvents();
+  }
+
+  clearCalDay() {
+    this.selectedCalDay.set(null);
+    this.page.set(1);
+    this.loadEvents();
+  }
+
   ngOnInit() {
     this.categoryApi.getAll(1, 100).subscribe({ next: r => this.categories.set(r.items) });
+    this.eventApi.getAll(1, 1000).subscribe({ next: r => this.allEvents.set(r.items) });
     this.loadEvents();
   }
 
   loadEvents() {
     this.loading.set(true);
+    const day = this.selectedCalDay();
     const filter: any = { page: this.page(), pageSize: this.pageSize };
-    if (this.keyword) filter.keyword = this.keyword;
+    if (this.keyword)          filter.keyword    = this.keyword;
     if (this.selectedCategory) filter.categoryId = this.selectedCategory;
-    if (this.startDate) filter.startDate = this.startDate;
-    if (this.endDate) filter.endDate = this.endDate;
-    if (this.minPrice !== '') filter.minPrice = this.minPrice;
-    if (this.maxPrice !== '') filter.maxPrice = this.maxPrice;
-
-    const hasFilter = this.keyword || this.selectedCategory || this.startDate || this.endDate || this.minPrice !== '' || this.maxPrice !== '';
-    const call = hasFilter
-      ? this.eventApi.search(filter)
-      : this.eventApi.getAll(this.page(), this.pageSize);
-
+    if (this.minPrice !== '')  filter.minPrice   = this.minPrice;
+    if (this.maxPrice !== '')  filter.maxPrice   = this.maxPrice;
+    if (day !== null) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const y = this.calYear(), m = this.calMonth() + 1;
+      const dateStr     = `${y}-${pad(m)}-${pad(day)}`;
+      // endDate = next day so the backend range [startDate, endDate) captures the full day
+      const nextDay     = new Date(this.calYear(), this.calMonth(), day + 1);
+      const nextDateStr = `${nextDay.getFullYear()}-${pad(nextDay.getMonth() + 1)}-${pad(nextDay.getDate())}`;
+      filter.startDate = dateStr;
+      filter.endDate   = nextDateStr;
+    }
+    const hasFilter = this.keyword || this.selectedCategory || this.minPrice !== '' || this.maxPrice !== '' || day !== null;
+    const call = hasFilter ? this.eventApi.search(filter) : this.eventApi.getAll(this.page(), this.pageSize);
     call.subscribe({
       next: r => { this.events.set(r.items); this.totalCount.set(r.totalCount); this.loading.set(false); },
       error: () => this.loading.set(false)
@@ -190,33 +344,44 @@ export class EventListComponent implements OnInit {
   }
 
   clearFilters() {
-    this.keyword = '';
-    this.selectedCategory = '';
-    this.startDate = '';
-    this.endDate = '';
-    this.minPrice = '';
-    this.maxPrice = '';
-    this.page.set(1);
-    this.loadEvents();
+    this.keyword = ''; this.selectedCategory = ''; this.minPrice = ''; this.maxPrice = '';
+    this.selectedCalDay.set(null); this.page.set(1); this.loadEvents();
   }
 
-  onPageChange(p: number) {
-    this.page.set(p);
-    this.loadEvents();
+  onPageChange(p: number) { this.page.set(p); this.loadEvents(); }
+
+  isExpired(ev: EventResponse): boolean { return new Date(ev.endDateTime) <= new Date(); }
+
+  getCardBg(name?: string, color?: string): string {
+    const c = color || '#6366f1';
+    const n = (name || '').toLowerCase();
+    if (n.includes('music') || n.includes('concert')) return `linear-gradient(135deg,#1a1a2e,#16213e,${c}99)`;
+    if (n.includes('sport') || n.includes('game'))    return `linear-gradient(135deg,#134e5e,#71b280)`;
+    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return `linear-gradient(135deg,#0f0c29,#302b63,#24243e)`;
+    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return `linear-gradient(135deg,#f093fb,#f5576c)`;
+    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return `linear-gradient(135deg,#f7971e,#ffd200)`;
+    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return `linear-gradient(135deg,#1c3c5a,#2d6a9f)`;
+    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return `linear-gradient(135deg,#11998e,#38ef7d)`;
+    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return `linear-gradient(135deg,#4776e6,#8e54e9)`;
+    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return `linear-gradient(135deg,#232526,#414345)`;
+    if (n.includes('travel') || n.includes('tour')) return `linear-gradient(135deg,#2980b9,#6dd5fa)`;
+    if (n.includes('fashion') || n.includes('style')) return `linear-gradient(135deg,#fc5c7d,#6a3093)`;
+    if (n.includes('charity') || n.includes('fundrais')) return `linear-gradient(135deg,#e96c6c,#f7b733)`;
+    return `linear-gradient(135deg,${c}cc,${c}44)`;
   }
 
   getCategoryIcon(name?: string): string {
     if (!name) return '🎭';
     const n = name.toLowerCase();
     if (n.includes('music') || n.includes('concert')) return '🎵';
-    if (n.includes('sport') || n.includes('game')) return '⚽';
-    if (n.includes('tech') || n.includes('code') || n.includes('dev')) return '💻';
-    if (n.includes('art') || n.includes('paint') || n.includes('gallery')) return '🎨';
-    if (n.includes('food') || n.includes('cook') || n.includes('culinary')) return '🍽️';
+    if (n.includes('sport') || n.includes('game'))    return '⚽';
+    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return '💻';
+    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return '🎨';
+    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return '🍽️';
     if (n.includes('business') || n.includes('conference') || n.includes('summit')) return '💼';
     if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return '🧘';
     if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return '📚';
-    if (n.includes('film') || n.includes('movie') || n.includes('cinema')) return '🎬';
+    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return '🎬';
     if (n.includes('travel') || n.includes('tour')) return '✈️';
     if (n.includes('fashion') || n.includes('style')) return '👗';
     if (n.includes('charity') || n.includes('fundrais')) return '❤️';

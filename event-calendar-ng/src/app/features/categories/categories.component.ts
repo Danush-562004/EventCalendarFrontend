@@ -30,14 +30,16 @@ import { CategoryResponse } from '../../core/models';
         <div class="cat-grid">
           @for (cat of categories(); track cat.id) {
             <div class="cat-card">
-              <div class="cat-card__color" [style.background]="cat.colorCode"></div>
+              <div class="cat-card__banner" [style.background]="getCatBg(cat.name, cat.colorCode)">
+                <span class="cat-card__icon">{{ getCatIcon(cat.name) }}</span>
+              </div>
               <div class="cat-card__body">
-                <h3 class="cat-card__name">{{ cat.name }}</h3>
-                @if (cat.description) { <p class="cat-card__desc">{{ cat.description }}</p> }
-                <div class="cat-card__meta">
+                <div class="cat-card__top">
+                  <h3 class="cat-card__name">{{ cat.name }}</h3>
                   <span class="badge" [class]="cat.isActive ? 'badge--green' : 'badge--red'">{{ cat.isActive ? 'Active' : 'Inactive' }}</span>
-                  <span class="cat-card__date">{{ cat.createdAt | date:'MMM y' }}</span>
                 </div>
+                @if (cat.description) { <p class="cat-card__desc">{{ cat.description }}</p> }
+                <div class="cat-card__color-strip" [style.background]="cat.colorCode"></div>
               </div>
               @if (auth.isAdmin()) {
                 <div class="cat-card__actions">
@@ -98,20 +100,17 @@ import { CategoryResponse } from '../../core/models';
     </div>
   `,
   styles: [`
-    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-    .cat-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-      padding: 1.25rem 1.25rem 1rem; display: flex; flex-direction: column; gap: .75rem;
-      position: relative; transition: transform .2s, box-shadow .2s;
-    }
-    .cat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.18); }
-    .cat-card__color { width: 100%; height: 6px; border-radius: 4px; }
-    .cat-card__body { flex: 1; }
-    .cat-card__name { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
-    .cat-card__desc { font-size: .8125rem; color: var(--muted); margin-bottom: .5rem; }
-    .cat-card__meta { display: flex; align-items: center; justify-content: space-between; }
-    .cat-card__date { font-size: .75rem; color: var(--muted); }
-    .cat-card__actions { display: flex; gap: .375rem; justify-content: flex-end; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
+    .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .cat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
+    .cat-card__banner { height: 100px; display: flex; align-items: center; justify-content: center; }
+    .cat-card__icon { font-size: 2.75rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,.2)); }
+    .cat-card__body { flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+    .cat-card__top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .cat-card__name { font-size: .9375rem; font-weight: 700; color: var(--text); }
+    .cat-card__desc { font-size: .8125rem; color: var(--muted); line-height: 1.5; }
+    .cat-card__color-strip { height: 4px; border-radius: 2px; margin-top: auto; }
+    .cat-card__actions { display: flex; gap: .375rem; justify-content: flex-end; padding: .625rem 1rem; border-top: 1px solid var(--border); }
     .color-row { display: flex; gap: .5rem; align-items: center; }
     .color-input { flex: 1; }
     .color-picker { width: 40px; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface2); }
@@ -187,5 +186,37 @@ export class CategoriesComponent implements OnInit {
     this.api.delete(this.deleteTarget.id).subscribe({
       next: () => { this.toast.success('Category deactivated.'); this.confirmDelete = false; this.load(); }
     });
+  }
+
+  getCatIcon(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('music') || n.includes('concert')) return '🎵';
+    if (n.includes('sport') || n.includes('game'))    return '⚽';
+    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return '💻';
+    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return '🎨';
+    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return '🍽️';
+    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return '💼';
+    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return '🧘';
+    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return '📚';
+    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return '🎬';
+    if (n.includes('travel') || n.includes('tour')) return '✈️';
+    if (n.includes('fashion') || n.includes('style')) return '👗';
+    if (n.includes('charity') || n.includes('fundrais')) return '❤️';
+    return '🎭';
+  }
+
+  getCatBg(name: string, color: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('music') || n.includes('concert')) return 'linear-gradient(135deg,#1a1a2e,#16213e)';
+    if (n.includes('sport') || n.includes('game'))    return 'linear-gradient(135deg,#134e5e,#71b280)';
+    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return 'linear-gradient(135deg,#0f0c29,#302b63)';
+    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return 'linear-gradient(135deg,#f093fb,#f5576c)';
+    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return 'linear-gradient(135deg,#f7971e,#ffd200)';
+    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return 'linear-gradient(135deg,#1c3c5a,#2d6a9f)';
+    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return 'linear-gradient(135deg,#11998e,#38ef7d)';
+    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return 'linear-gradient(135deg,#4776e6,#8e54e9)';
+    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return 'linear-gradient(135deg,#232526,#414345)';
+    if (n.includes('travel') || n.includes('tour')) return 'linear-gradient(135deg,#2980b9,#6dd5fa)';
+    return `linear-gradient(135deg,${color}cc,${color}44)`;
   }
 }

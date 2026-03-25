@@ -31,24 +31,28 @@ import { VenueResponse } from '../../core/models';
         <div class="venues-grid">
           @for (v of venues(); track v.id) {
             <div class="venue-card">
-              <div class="venue-card__header">
-                <h3 class="venue-card__name">{{ v.name }}</h3>
-                <span class="badge" [class]="v.isActive ? 'badge--green' : 'badge--red'">{{ v.isActive ? 'Active' : 'Inactive' }}</span>
+              <div class="venue-card__img" [style.background]="getVenueBg(v.name, v.city)">
+                <span class="venue-card__img-icon">{{ getVenueIcon(v.name) }}</span>
               </div>
-              <div class="venue-card__addr">📍 {{ v.address }}, {{ v.city }}, {{ v.state }}, {{ v.country }}</div>
-              @if (v.description) { <p class="venue-card__desc">{{ v.description }}</p> }
-              <div class="venue-card__details">
-                <div class="detail-item"><span class="detail-label">Capacity</span><span class="detail-val">{{ v.capacity | number }}</span></div>
-                @if (v.contactEmail) { <div class="detail-item"><span class="detail-label">Email</span><span class="detail-val">{{ v.contactEmail }}</span></div> }
-                @if (v.contactPhone) { <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-val">{{ v.contactPhone }}</span></div> }
-                @if (v.zipCode) { <div class="detail-item"><span class="detail-label">ZIP</span><span class="detail-val">{{ v.zipCode }}</span></div> }
-              </div>
-              @if (auth.isAdmin()) {
-                <div class="venue-card__actions">
-                  <button class="btn btn--ghost btn--sm" (click)="openEdit(v)">✏️ Edit</button>
-                  <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true">🗑 Delete</button>
+              <div class="venue-card__content">
+                <div class="venue-card__header">
+                  <h3 class="venue-card__name">{{ v.name }}</h3>
+                  <span class="badge" [class]="v.isActive ? 'badge--green' : 'badge--red'">{{ v.isActive ? 'Active' : 'Inactive' }}</span>
                 </div>
-              }
+                <div class="venue-card__addr">📍 {{ v.city }}, {{ v.state }}, {{ v.country }}</div>
+                @if (v.description) { <p class="venue-card__desc">{{ v.description }}</p> }
+                <div class="venue-card__details">
+                  <div class="detail-item"><span class="detail-label">Capacity</span><span class="detail-val">{{ v.capacity | number }}</span></div>
+                  @if (v.contactEmail) { <div class="detail-item"><span class="detail-label">Email</span><span class="detail-val">{{ v.contactEmail }}</span></div> }
+                  @if (v.contactPhone) { <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-val">{{ v.contactPhone }}</span></div> }
+                </div>
+                @if (auth.isAdmin()) {
+                  <div class="venue-card__actions">
+                    <button class="btn btn--ghost btn--sm" (click)="openEdit(v)">✏️ Edit</button>
+                    <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true">🗑 Delete</button>
+                  </div>
+                }
+              </div>
             </div>
           } @empty {
             <div class="empty-full">
@@ -129,9 +133,12 @@ import { VenueResponse } from '../../core/models';
     </div>
   `,
   styles: [`
-    .venues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
-    .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; gap: .75rem; transition: transform .2s, box-shadow .2s; }
-    .venue-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+    .venues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+    .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .venue-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
+    .venue-card__img { height: 130px; display: flex; align-items: center; justify-content: center; position: relative; }
+    .venue-card__img-icon { font-size: 3.5rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,.3)); }
+    .venue-card__content { flex: 1; padding: 1.25rem; display: flex; flex-direction: column; gap: .625rem; }
     .venue-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
     .venue-card__name { font-size: 1.0625rem; font-weight: 700; color: var(--text); }
     .venue-card__addr { font-size: .8125rem; color: var(--muted); }
@@ -140,7 +147,7 @@ import { VenueResponse } from '../../core/models';
     .detail-item { display: flex; flex-direction: column; gap: .125rem; }
     .detail-label { font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
     .detail-val { font-size: .8125rem; font-weight: 600; color: var(--text); }
-    .venue-card__actions { display: flex; gap: .5rem; padding-top: .25rem; border-top: 1px solid var(--border); }
+    .venue-card__actions { display: flex; gap: .5rem; padding-top: .625rem; border-top: 1px solid var(--border); margin-top: auto; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(440px, 90vw); display: flex; flex-direction: column; gap: 1rem; animation: popIn .2s ease; }
     .modal--wide { width: min(700px, 90vw); }
@@ -219,4 +226,30 @@ export class VenuesComponent implements OnInit {
   }
 
   onPage(p: number) { this.page.set(p); this.load(); }
+
+  getVenueIcon(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('stadium') || n.includes('arena') || n.includes('sport')) return '🏟️';
+    if (n.includes('hall') || n.includes('auditorium') || n.includes('theater')) return '🎭';
+    if (n.includes('hotel') || n.includes('resort') || n.includes('inn')) return '🏨';
+    if (n.includes('park') || n.includes('garden') || n.includes('outdoor')) return '🌳';
+    if (n.includes('club') || n.includes('lounge') || n.includes('bar')) return '🎶';
+    if (n.includes('museum') || n.includes('gallery') || n.includes('art')) return '🏛️';
+    if (n.includes('conference') || n.includes('center') || n.includes('convention')) return '🏢';
+    if (n.includes('school') || n.includes('college') || n.includes('university')) return '🎓';
+    if (n.includes('temple') || n.includes('church') || n.includes('mosque')) return '⛪';
+    return '🏛️';
+  }
+
+  getVenueBg(name: string, city: string): string {
+    const n = (name + ' ' + city).toLowerCase();
+    if (n.includes('stadium') || n.includes('arena') || n.includes('sport')) return 'linear-gradient(135deg,#134e5e,#71b280)';
+    if (n.includes('hall') || n.includes('auditorium') || n.includes('theater')) return 'linear-gradient(135deg,#1a1a2e,#16213e)';
+    if (n.includes('hotel') || n.includes('resort')) return 'linear-gradient(135deg,#c9a96e,#8b6914)';
+    if (n.includes('park') || n.includes('garden') || n.includes('outdoor')) return 'linear-gradient(135deg,#1d976c,#93f9b9)';
+    if (n.includes('club') || n.includes('lounge')) return 'linear-gradient(135deg,#360033,#0b8793)';
+    if (n.includes('museum') || n.includes('gallery')) return 'linear-gradient(135deg,#4b6cb7,#182848)';
+    if (n.includes('conference') || n.includes('center')) return 'linear-gradient(135deg,#1c3c5a,#2d6a9f)';
+    return 'linear-gradient(135deg,#2c3e50,#4ca1af)';
+  }
 }

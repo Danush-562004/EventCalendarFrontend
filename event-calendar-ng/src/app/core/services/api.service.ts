@@ -41,8 +41,9 @@ export class AuthApiService {
 export class UserApiService {
   private http = inject(HttpClient);
 
-  getAll(page = 1, pageSize = 20): Observable<PagedResponse<UserResponse>> {
-    const params = new HttpParams().set('page', page).set('pageSize', pageSize);
+  getAll(page = 1, pageSize = 20, search?: string): Observable<PagedResponse<UserResponse>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (search) params = params.set('search', search);
     return unwrap(this.http.get<ApiResponse<PagedResponse<UserResponse>>>(`${BASE}/users`, { params }));
   }
 
@@ -168,8 +169,9 @@ export class EventApiService {
 export class TicketApiService {
   private http = inject(HttpClient);
 
-  getAll(page = 1, pageSize = 20): Observable<PagedResponse<TicketResponse>> {
-    const params = new HttpParams().set('page', page).set('pageSize', pageSize);
+  getAll(page = 1, pageSize = 20, status?: string): Observable<PagedResponse<TicketResponse>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (status) params = params.set('status', status);
     return unwrap(this.http.get<ApiResponse<PagedResponse<TicketResponse>>>(`${BASE}/tickets`, { params }));
   }
 
@@ -203,8 +205,9 @@ export class TicketApiService {
 export class PaymentApiService {
   private http = inject(HttpClient);
 
-  getAll(page = 1, pageSize = 20): Observable<PagedResponse<PaymentResponse>> {
-    const params = new HttpParams().set('page', page).set('pageSize', pageSize);
+  getAll(page = 1, pageSize = 20, status?: string): Observable<PagedResponse<PaymentResponse>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (status) params = params.set('status', status);
     return unwrap(this.http.get<ApiResponse<PagedResponse<PaymentResponse>>>(`${BASE}/payments`, { params }));
   }
 
