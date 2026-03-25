@@ -31,6 +31,15 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
       </div>
 
       @if (tab() === 'users') {
+        <!-- Search bar -->
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" [(ngModel)]="userSearch" placeholder="Search by username, name or email…" (input)="onUserSearch()">
+          @if (userSearch) {
+            <button class="search-clear" (click)="userSearch = ''; onUserSearch()">✕</button>
+          }
+        </div>
+
         @if (usersLoading()) {
           <app-loading text="Loading users…" />
         } @else {
@@ -40,7 +49,7 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                 <th>#</th><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                @for (u of users(); track u.id) {
+                @for (u of filteredUsers(); track u.id) {
                   <tr>
                     <td>{{ u.id }}</td>
                     <td><strong>{{ u.firstName }} {{ u.lastName }}</strong></td>
@@ -53,14 +62,32 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                     </td>
                   </tr>
                 }
+                @if (filteredUsers().length === 0) {
+                  <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">No users match "{{ userSearch }}"</td></tr>
+                }
               </tbody>
             </table>
           </div>
-          <app-pagination [currentPage]="usersPage()" [pageSize]="pageSize" [totalCount]="usersTotalCount()" (pageChange)="onUsersPage($event)" />
+          @if (!userSearch) {
+            <app-pagination [currentPage]="usersPage()" [pageSize]="pageSize" [totalCount]="usersTotalCount()" (pageChange)="onUsersPage($event)" />
+          }
         }
       }
 
       @if (tab() === 'payments') {
+        <!-- Payment status filter -->
+        <div class="filter-row">
+          <select class="form-select filter-select" [(ngModel)]="paymentStatusFilter" (change)="applyPaymentFilter()">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Completed">Completed</option>
+            <option value="Failed">Failed</option>
+            <option value="Refunded">Refunded</option>
+          </select>
+          @if (paymentStatusFilter) {
+            <button class="btn btn--ghost btn--sm" (click)="paymentStatusFilter = ''; applyPaymentFilter()">Clear</button>
+          }
+        </div>
         @if (paymentsLoading()) {
           <app-loading text="Loading payments…" />
         } @else {
@@ -70,7 +97,7 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                 <th>#</th><th>Ticket ID</th><th>Amount</th><th>Currency</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                @for (p of payments(); track p.id) {
+                @for (p of filteredPayments(); track p.id) {
                   <tr>
                     <td>{{ p.id }}</td>
                     <td><span class="mono">{{ p.ticketId }}</span></td>
@@ -87,28 +114,47 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                     </td>
                   </tr>
                 }
+                @if (filteredPayments().length === 0) {
+                  <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No payments found.</td></tr>
+                }
               </tbody>
             </table>
           </div>
-          <app-pagination [currentPage]="paymentsPage()" [pageSize]="pageSize" [totalCount]="paymentsTotalCount()" (pageChange)="onPaymentsPage($event)" />
+          @if (!paymentStatusFilter) {
+            <app-pagination [currentPage]="paymentsPage()" [pageSize]="pageSize" [totalCount]="paymentsTotalCount()" (pageChange)="onPaymentsPage($event)" />
+          }
         }
       }
 
       @if (tab() === 'tickets') {
+        <!-- Ticket status filter -->
+        <div class="filter-row">
+          <select class="form-select filter-select" [(ngModel)]="ticketStatusFilter" (change)="applyTicketFilter()">
+            <option value="">All Statuses</option>
+            <option value="Reserved">Reserved</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Attended">Attended</option>
+          </select>
+          @if (ticketStatusFilter) {
+            <button class="btn btn--ghost btn--sm" (click)="ticketStatusFilter = ''; applyTicketFilter()">Clear</button>
+          }
+        </div>
         @if (ticketsLoading()) {
           <app-loading text="Loading tickets…" />
         } @else {
           <div class="table-wrap">
             <table class="table">
               <thead><tr>
-                <th>Ticket #</th><th>Event</th><th>User</th><th>Type</th><th>Status</th><th>Qty</th><th>Price</th><th>Actions</th>
+                <th>Ticket #</th><th>Event</th><th>User</th><th>Email</th><th>Type</th><th>Status</th><th>Qty</th><th>Price</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                @for (tk of allTickets(); track tk.id) {
+                @for (tk of filteredTickets(); track tk.id) {
                   <tr>
                     <td><span class="mono">{{ tk.ticketNumber }}</span></td>
                     <td>{{ tk.eventTitle }}</td>
                     <td>{{ tk.userFullName }}</td>
+                    <td><span class="mono" style="font-size:.8125rem">{{ tk.userEmail }}</span></td>
                     <td><span class="badge badge--blue">{{ tk.type }}</span></td>
                     <td><span class="badge" [class]="'badge--' + statusColor(tk.status)">{{ tk.status }}</span></td>
                     <td>{{ tk.quantity }}</td>
@@ -118,10 +164,15 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                     </td>
                   </tr>
                 }
+                @if (filteredTickets().length === 0) {
+                  <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No tickets found.</td></tr>
+                }
               </tbody>
             </table>
           </div>
-          <app-pagination [currentPage]="ticketsPage()" [pageSize]="pageSize" [totalCount]="ticketsTotalCount()" (pageChange)="onTicketsPage($event)" />
+          @if (!ticketStatusFilter) {
+            <app-pagination [currentPage]="ticketsPage()" [pageSize]="pageSize" [totalCount]="ticketsTotalCount()" (pageChange)="onTicketsPage($event)" />
+          }
         }
       }
 
@@ -241,6 +292,14 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
     .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
     .filter-bar { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.5rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
     .filter-bar .form-field { min-width: 150px; }
+    .filter-row { display: flex; gap: .75rem; align-items: center; margin-bottom: 1rem; }
+    .filter-select { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; min-width: 160px; }
+    .search-bar { position: relative; display: flex; align-items: center; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .5rem 1rem; gap: .5rem; }
+    .search-icon { font-size: .875rem; flex-shrink: 0; }
+    .search-input { flex: 1; border: none; background: none; font-size: .9375rem; color: var(--text); font-family: inherit; outline: none; }
+    .search-input::placeholder { color: var(--muted); }
+    .search-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .875rem; padding: 0 .25rem; }
+    .search-clear:hover { color: var(--text); }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(440px, 90vw); display: flex; flex-direction: column; gap: 1rem; animation: popIn .2s ease; box-shadow: 0 8px 40px rgba(0,0,0,.12); }
     @keyframes popIn { from { transform: scale(.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -262,13 +321,44 @@ export class AdminComponent implements OnInit {
   users           = signal<UserResponse[]>([]);
   usersPage       = signal(1);
   usersTotalCount = signal(0);
+  userSearch      = '';
   deleteUserTarget: UserResponse | null = null;
   confirmDeleteUser = false;
+
+  /** Fuzzy filter — matches any contiguous subsequence of chars in username/name/email */
+  filteredUsers(): UserResponse[] {
+    const q = this.userSearch.trim().toLowerCase();
+    if (!q) return this.users();
+    return this.users().filter(u => {
+      const haystack = `${u.username} ${u.firstName} ${u.lastName} ${u.email}`.toLowerCase();
+      return this.fuzzyMatch(q, haystack);
+    });
+  }
+
+  fuzzyMatch(needle: string, haystack: string): boolean {
+    let ni = 0;
+    for (let i = 0; i < haystack.length && ni < needle.length; i++) {
+      if (haystack[i] === needle[ni]) ni++;
+    }
+    return ni === needle.length;
+  }
+
+  onUserSearch() {
+    // If searching, load all users so filter works across all pages
+    if (this.userSearch && this.users().length < this.usersTotalCount()) {
+      this.usersLoading.set(true);
+      this.userApi.getAll(1, 1000).subscribe({
+        next: r => { this.users.set(r.items); this.usersTotalCount.set(r.totalCount); this.usersLoading.set(false); },
+        error: () => this.usersLoading.set(false)
+      });
+    }
+  }
 
   paymentsLoading    = signal(false);
   payments           = signal<PaymentResponse[]>([]);
   paymentsPage       = signal(1);
   paymentsTotalCount = signal(0);
+  paymentStatusFilter = '';
   editPaymentTarget  = signal<PaymentResponse | null>(null);
   savingPayment      = signal(false);
   deletePaymentTarget: PaymentResponse | null = null;
@@ -277,12 +367,43 @@ export class AdminComponent implements OnInit {
   payEditTxnId  = '';
   payEditNotes  = '';
 
+  filteredPayments(): PaymentResponse[] {
+    if (!this.paymentStatusFilter) return this.payments();
+    return this.payments().filter(p => p.status === this.paymentStatusFilter);
+  }
+
+  applyPaymentFilter() {
+    if (this.paymentStatusFilter && this.payments().length < this.paymentsTotalCount()) {
+      this.paymentsLoading.set(true);
+      this.paymentApi.getAll(1, 1000).subscribe({
+        next: r => { this.payments.set(r.items); this.paymentsTotalCount.set(r.totalCount); this.paymentsLoading.set(false); },
+        error: () => this.paymentsLoading.set(false)
+      });
+    }
+  }
+
   ticketsLoading    = signal(false);
   allTickets        = signal<TicketResponse[]>([]);
   ticketsPage       = signal(1);
   ticketsTotalCount = signal(0);
+  ticketStatusFilter = '';
   deleteTicketTarget: TicketResponse | null = null;
   confirmDeleteTicket = false;
+
+  filteredTickets(): TicketResponse[] {
+    if (!this.ticketStatusFilter) return this.allTickets();
+    return this.allTickets().filter(t => t.status === this.ticketStatusFilter);
+  }
+
+  applyTicketFilter() {
+    if (this.ticketStatusFilter && this.allTickets().length < this.ticketsTotalCount()) {
+      this.ticketsLoading.set(true);
+      this.ticketApi.getAll(1, 1000).subscribe({
+        next: r => { this.allTickets.set(r.items); this.ticketsTotalCount.set(r.totalCount); this.ticketsLoading.set(false); },
+        error: () => this.ticketsLoading.set(false)
+      });
+    }
+  }
 
   auditLoading    = signal(false);
   auditLogs       = signal<AuditLogResponse[]>([]);

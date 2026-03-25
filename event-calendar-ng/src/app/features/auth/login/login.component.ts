@@ -82,7 +82,11 @@ export class LoginComponent {
         this.toast.success(`Welcome back, ${auth.user.fullName || auth.user.username}!`);
         this.router.navigate(['/dashboard']);
       },
-      error: () => this.loading.set(false),
+      error: (err) => {
+        const msg = err?.error?.message || 'Login failed. Please try again.';
+        this.toast.error(msg);
+        this.loading.set(false);
+      },
       complete: () => this.loading.set(false)
     });
   }

@@ -283,6 +283,13 @@ export class TicketsComponent implements OnInit {
     const tk = this.paymentTarget();
     if (!tk || this.paying()) return;
 
+    // Block payment if event has expired
+    if (this.isEventExpired(tk)) {
+      this.toast.error('This event has ended. Payment cannot be processed.');
+      this.paymentTarget.set(null);
+      return;
+    }
+
     // Free ticket — no payment needed, just confirm
     if (this.payAmount === 0) {
       this.toast.success('Free ticket confirmed!');

@@ -194,6 +194,7 @@ export interface TicketResponse {
   eventEndDateTime: string;
   userId: number;
   userFullName: string;
+  userEmail: string;
   payments: PaymentResponse[];
 }
 

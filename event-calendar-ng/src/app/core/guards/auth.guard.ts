@@ -23,6 +23,16 @@ export const adminGuard: CanActivateFn = () => {
   return false;
 };
 
+export const userGuard: CanActivateFn = () => {
+  const auth   = inject(AuthStore);
+  const router = inject(Router);
+  const toast  = inject(ToastService);
+  if (!auth.isAdmin()) return true;
+  toast.warning('This section is for users only.');
+  router.navigate(['/dashboard']);
+  return false;
+};
+
 export const guestGuard: CanActivateFn = () => {
   const auth   = inject(AuthStore);
   const router = inject(Router);

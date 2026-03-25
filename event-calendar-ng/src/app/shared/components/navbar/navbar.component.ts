@@ -20,15 +20,15 @@ import { ToastService } from '../toast/toast.service';
       </button>
 
       <div class="navbar__links" [class.open]="menuOpen()">
-        <a routerLink="/events"     routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Events</a>
-        <a routerLink="/venues"     routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Venues</a>
-        <a routerLink="/categories" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Categories</a>
+        <a routerLink="/events" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Events</a>
+        <a routerLink="/venues" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Venues</a>
 
         @if (auth.isLoggedIn()) {
+          <a routerLink="/categories" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Categories</a>
           @if (!auth.isAdmin()) {
             <a routerLink="/tickets"   routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">My Tickets</a>
+            <a routerLink="/reminders" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Reminders</a>
           }
-          <a routerLink="/reminders" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Reminders</a>
           @if (auth.isAdmin()) {
             <a routerLink="/admin" routerLinkActive="active" class="nav-link nav-link--admin" (click)="menuOpen.set(false)">Admin</a>
           }
@@ -43,14 +43,14 @@ import { ToastService } from '../toast/toast.service';
                   <span class="dropdown__role">{{ auth.user()?.role }}</span>
                 </div>
                 <hr class="dropdown__sep">
-                <a routerLink="/profile" class="dropdown__item">Profile</a>
+                <a routerLink="/dashboard" class="dropdown__item">Dashboard</a>
+                <a routerLink="/profile"   class="dropdown__item">Profile</a>
                 <button class="dropdown__item dropdown__item--danger" (click)="logout()">Sign Out</button>
               </div>
             }
           </div>
         } @else {
           <button class="nav-link" (click)="requireLogin('My Tickets'); menuOpen.set(false)">My Tickets</button>
-          <button class="nav-link" (click)="requireLogin('Reminders'); menuOpen.set(false)">Reminders</button>
           <a routerLink="/auth/login"    class="btn btn--sm btn--ghost">Sign In</a>
           <a routerLink="/auth/register" class="btn btn--sm">Get Started</a>
         }

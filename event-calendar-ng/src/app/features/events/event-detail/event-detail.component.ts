@@ -124,14 +124,9 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
               <div class="ticket-form">
                 <div class="form-field">
                   <label class="form-label">Ticket Type</label>
-                  <select class="form-select" [(ngModel)]="ticketType">
-                    @if (event()!.price === 0) {
-                      <option value="Free">Free</option>
-                    } @else {
-                      <option value="Paid">Paid</option>
-                      <option value="VIP">VIP</option>
-                    }
-                  </select>
+                  <div class="type-badge">
+                    {{ event()!.price > 0 ? 'Paid' : 'Free' }}
+                  </div>
                 </div>
                 <div class="form-field">
                   <label class="form-label">Quantity</label>
@@ -253,6 +248,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .price-badge--free { background: rgba(16,185,129,.12); color: #10b981; }
     .ticket-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
     .ticket-form .form-field { min-width: 160px; }
+    .type-badge { display: inline-flex; align-items: center; padding: .5rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: .9375rem; font-weight: 600; color: var(--accent); }
     .price-summary { display: flex; flex-direction: column; gap: .25rem; padding: .75rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; min-width: 120px; }
     .price-summary__label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
     .price-summary__value { font-size: 1.125rem; font-weight: 800; color: var(--accent); }
@@ -277,7 +273,6 @@ export class EventDetailComponent implements OnInit {
   addingReminder = signal(false);
   confirmDelete = false;
 
-  ticketType: any = 'Free';
   ticketQty = 1;
   seatNumber = '';
   reminderTitle = '';
@@ -310,14 +305,15 @@ export class EventDetailComponent implements OnInit {
       return;
     }
     this.bookingTicket.set(true);
-    const req: CreateTicketRequest = { eventId: ev.id, type: this.ticketType, quantity: this.ticketQty };
+    // Derive ticket type from event price — no user choice needed
+    const type = ev.price > 0 ? 'Paid' : 'Free';
+    const req: CreateTicketRequest = { eventId: ev.id, type, quantity: this.ticketQty };
     if (this.seatNumber) req.seatNumber = this.seatNumber;
     this.ticketApi.create(req).subscribe({
       next: t => {
         const totalPrice = ev.price > 0 ? ` · Total: ₹${(ev.price * this.ticketQty).toLocaleString()}` : '';
         this.toast.success(`Ticket booked! #${t.ticketNumber}${totalPrice}`);
         this.bookingTicket.set(false);
-        // Update available seats and ticket count
         this.event.update(e => e ? {
           ...e,
           ticketCount: e.ticketCount + 1,
