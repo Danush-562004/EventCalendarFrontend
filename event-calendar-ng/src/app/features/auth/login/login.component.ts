@@ -80,7 +80,9 @@ export class LoginComponent {
       next: auth => {
         this.authStore.setAuth(auth);
         this.toast.success(`Welcome back, ${auth.user.fullName || auth.user.username}!`);
-        this.router.navigate(['/dashboard']);
+        // Admins go to admin panel, users go to dashboard
+        const dest = auth.user.role === 'Admin' ? '/admin' : '/dashboard';
+        this.router.navigate([dest]);
       },
       error: (err) => {
         const msg = err?.error?.message || 'Login failed. Please try again.';

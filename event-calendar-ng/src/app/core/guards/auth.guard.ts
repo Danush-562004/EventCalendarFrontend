@@ -19,7 +19,8 @@ export const adminGuard: CanActivateFn = () => {
   const toast  = inject(ToastService);
   if (auth.isAdmin()) return true;
   toast.error('Admin access required.');
-  router.navigate(['/dashboard']);
+  // Redirect logged-in non-admins to dashboard, guests to login
+  router.navigate([auth.isLoggedIn() ? '/dashboard' : '/auth/login']);
   return false;
 };
 
@@ -29,7 +30,7 @@ export const userGuard: CanActivateFn = () => {
   const toast  = inject(ToastService);
   if (!auth.isAdmin()) return true;
   toast.warning('This section is for users only.');
-  router.navigate(['/dashboard']);
+  router.navigate(['/admin']);
   return false;
 };
 
@@ -37,6 +38,7 @@ export const guestGuard: CanActivateFn = () => {
   const auth   = inject(AuthStore);
   const router = inject(Router);
   if (!auth.isLoggedIn()) return true;
-  router.navigate(['/dashboard']);
+  // Already logged in — send to appropriate home
+  router.navigate([auth.isAdmin() ? '/admin' : '/dashboard']);
   return false;
 };

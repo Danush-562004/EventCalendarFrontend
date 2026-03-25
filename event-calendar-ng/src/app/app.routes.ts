@@ -31,9 +31,20 @@ export const routes: Routes = [
     path: 'events',
     loadComponent: () => import('./features/events/event-list/event-list.component').then(m => m.EventListComponent)
   },
+  // events/new MUST be before events/:id so the router doesn't treat "new" as an id
+  {
+    path: 'events/new',
+    loadComponent: () => import('./features/events/event-form/event-form.component').then(m => m.EventFormComponent),
+    canActivate: [authGuard, adminGuard]
+  },
   {
     path: 'events/:id',
     loadComponent: () => import('./features/events/event-detail/event-detail.component').then(m => m.EventDetailComponent)
+  },
+  {
+    path: 'events/:id/edit',
+    loadComponent: () => import('./features/events/event-form/event-form.component').then(m => m.EventFormComponent),
+    canActivate: [authGuard, adminGuard]
   },
 
   // Dashboard — requires login
@@ -44,16 +55,6 @@ export const routes: Routes = [
   },
 
   // Admin only
-  {
-    path: 'events/new',
-    loadComponent: () => import('./features/events/event-form/event-form.component').then(m => m.EventFormComponent),
-    canActivate: [authGuard, adminGuard]
-  },
-  {
-    path: 'events/:id/edit',
-    loadComponent: () => import('./features/events/event-form/event-form.component').then(m => m.EventFormComponent),
-    canActivate: [authGuard, adminGuard]
-  },
   {
     path: 'admin',
     loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent),

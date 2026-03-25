@@ -77,12 +77,11 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
       @if (tab() === 'payments') {
         <!-- Payment status filter -->
         <div class="filter-row">
-          <select class="form-select filter-select" [(ngModel)]="paymentStatusFilter" (change)="applyPaymentFilter()">
+          <select class="form-select filter-select filter-select--half" [(ngModel)]="paymentStatusFilter" (change)="applyPaymentFilter()">
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
             <option value="Completed">Completed</option>
             <option value="Failed">Failed</option>
-            <option value="Refunded">Refunded</option>
           </select>
           @if (paymentStatusFilter) {
             <button class="btn btn--ghost btn--sm" (click)="paymentStatusFilter = ''; applyPaymentFilter()">Clear</button>
@@ -129,12 +128,11 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
       @if (tab() === 'tickets') {
         <!-- Ticket status filter -->
         <div class="filter-row">
-          <select class="form-select filter-select" [(ngModel)]="ticketStatusFilter" (change)="applyTicketFilter()">
+          <select class="form-select filter-select filter-select--half" [(ngModel)]="ticketStatusFilter" (change)="applyTicketFilter()">
             <option value="">All Statuses</option>
             <option value="Reserved">Reserved</option>
             <option value="Confirmed">Confirmed</option>
             <option value="Cancelled">Cancelled</option>
-            <option value="Attended">Attended</option>
           </select>
           @if (ticketStatusFilter) {
             <button class="btn btn--ghost btn--sm" (click)="ticketStatusFilter = ''; applyTicketFilter()">Clear</button>
@@ -294,6 +292,7 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
     .filter-bar .form-field { min-width: 150px; }
     .filter-row { display: flex; gap: .75rem; align-items: center; margin-bottom: 1rem; }
     .filter-select { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; min-width: 160px; }
+    .filter-select--half { width: 50%; max-width: 300px; }
     .search-bar { position: relative; display: flex; align-items: center; margin-bottom: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .5rem 1rem; gap: .5rem; }
     .search-icon { font-size: .875rem; flex-shrink: 0; }
     .search-input { flex: 1; border: none; background: none; font-size: .9375rem; color: var(--text); font-family: inherit; outline: none; }
