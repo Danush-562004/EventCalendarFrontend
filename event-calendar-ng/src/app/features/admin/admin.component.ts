@@ -111,29 +111,27 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                     </td>
                   </tr>
                 }
-                @if (filteredPayments().length === 0) {
+                @if (payments().length === 0) {
                   <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No payments found.</td></tr>
                 }
               </tbody>
             </table>
           </div>
-          @if (!paymentStatusFilter) {
-            <app-pagination [currentPage]="paymentsPage()" [pageSize]="pageSize" [totalCount]="paymentsTotalCount()" (pageChange)="onPaymentsPage($event)" />
-          }
+          <app-pagination [currentPage]="paymentsPage()" [pageSize]="pageSize" [totalCount]="paymentsTotalCount()" (pageChange)="onPaymentsPage($event)" />
         }
       }
 
       @if (tab() === 'tickets') {
         <!-- Ticket status filter -->
         <div class="filter-row">
-          <select class="form-select filter-select filter-select--half" [(ngModel)]="ticketStatusFilter" (change)="applyTicketFilter()">
+          <select class="form-select filter-select filter-select--half" [(ngModel)]="ticketStatusFilter" (change)="ticketsPage.set(1); loadTickets()">
             <option value="">All Statuses</option>
             <option value="Reserved">Reserved</option>
             <option value="Confirmed">Confirmed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
           @if (ticketStatusFilter) {
-            <button class="btn btn--ghost btn--sm" (click)="ticketStatusFilter = ''; applyTicketFilter()">Clear</button>
+            <button class="btn btn--ghost btn--sm" (click)="ticketStatusFilter = ''; ticketsPage.set(1); loadTickets()">Clear</button>
           }
         </div>
         @if (ticketsLoading()) {
@@ -145,7 +143,7 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                 <th>Ticket #</th><th>Event</th><th>User</th><th>Email</th><th>Type</th><th>Status</th><th>Qty</th><th>Price</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                @for (tk of filteredTickets(); track tk.id) {
+                @for (tk of allTickets(); track tk.id) {
                   <tr>
                     <td><span class="mono">{{ tk.ticketNumber }}</span></td>
                     <td>{{ tk.eventTitle }}</td>
@@ -160,15 +158,13 @@ type AdminTab = 'users' | 'payments' | 'tickets' | 'auditlogs';
                     </td>
                   </tr>
                 }
-                @if (filteredTickets().length === 0) {
+                @if (allTickets().length === 0) {
                   <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No tickets found.</td></tr>
                 }
               </tbody>
             </table>
           </div>
-          @if (!ticketStatusFilter) {
-            <app-pagination [currentPage]="ticketsPage()" [pageSize]="pageSize" [totalCount]="ticketsTotalCount()" (pageChange)="onTicketsPage($event)" />
-          }
+          <app-pagination [currentPage]="ticketsPage()" [pageSize]="pageSize" [totalCount]="ticketsTotalCount()" (pageChange)="onTicketsPage($event)" />
         }
       }
 
