@@ -42,9 +42,10 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           }
 
           <!-- Event Banner -->
-          <div class="event-detail__banner" [style.background]="getBannerGradient(event()!.category?.name, event()!.category?.colorCode)">
-            <span class="event-detail__banner-icon">{{ getCategoryIcon(event()!.category?.name) }}</span>
+          <div class="event-detail__banner">
+            <img [src]="getEventDetailImg(event()!.id, event()!.category?.name)" [alt]="event()!.title" class="event-detail__banner-photo">
             <div class="event-detail__banner-overlay">
+              <span class="event-detail__banner-icon">{{ getCategoryIcon(event()!.category?.name) }}</span>
               <span class="event-detail__banner-date">{{ event()!.startDateTime | date:'EEEE, MMMM d, y' }}</span>
             </div>
           </div>
@@ -129,8 +130,12 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
                   </div>
                 </div>
                 <div class="form-field">
-                  <label class="form-label">Quantity</label>
-                  <input class="form-input" type="number" [(ngModel)]="ticketQty" min="1" [max]="event()!.maxAttendees > 0 ? event()!.availableSeats : 10">
+                  <label class="form-label">Quantity <span class="qty-limit">(max 10 per event)</span></label>
+                  <div class="qty-stepper">
+                    <button type="button" class="qty-btn" (click)="decQty()" [disabled]="ticketQty <= 1">−</button>
+                    <span class="qty-val">{{ ticketQty }}</span>
+                    <button type="button" class="qty-btn" (click)="incQty()" [disabled]="ticketQty >= maxQty()">+</button>
+                  </div>
                 </div>
                 <div class="form-field">
                   <label class="form-label">Seat Number <span class="optional">(optional)</span></label>
@@ -220,10 +225,11 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     </div>
   `,
   styles: [`
-    .event-detail__banner { height: 220px; border-radius: 16px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-    .event-detail__banner-icon { font-size: 6rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2)); }
-    .event-detail__banner-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem 1.25rem; background: linear-gradient(transparent, rgba(0,0,0,.55)); }
-    .event-detail__banner-date { font-size: .9375rem; color: rgba(255,255,255,.92); font-weight: 600; }
+    .event-detail__banner { height: 280px; border-radius: 16px; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
+    .event-detail__banner-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .event-detail__banner-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.1) 0%, rgba(0,0,0,.6) 100%); display: flex; align-items: flex-end; padding: 1.25rem 1.5rem; gap: .75rem; }
+    .event-detail__banner-icon { font-size: 2.5rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+    .event-detail__banner-date { font-size: 1rem; color: #fff; font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
     .back-link { display: inline-flex; align-items: center; gap: .375rem; color: var(--muted); font-size: .875rem; text-decoration: none; margin-bottom: 1.5rem; }
     .back-link:hover { color: var(--text); }
     .event-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; }
@@ -248,6 +254,12 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .price-badge--free { background: rgba(16,185,129,.12); color: #10b981; }
     .ticket-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
     .ticket-form .form-field { min-width: 160px; }
+    .qty-limit { font-weight: 400; color: var(--muted); font-size: .75rem; }
+    .qty-stepper { display: flex; align-items: center; gap: .5rem; }
+    .qty-btn { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface2); color: var(--text); font-size: 1.25rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .12s, border-color .12s; line-height: 1; }
+    .qty-btn:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .qty-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .qty-val { min-width: 2rem; text-align: center; font-size: 1.125rem; font-weight: 700; color: var(--text); }
     .type-badge { display: inline-flex; align-items: center; padding: .5rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: .9375rem; font-weight: 600; color: var(--accent); }
     .price-summary { display: flex; flex-direction: column; gap: .25rem; padding: .75rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; min-width: 120px; }
     .price-summary__label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
@@ -275,6 +287,17 @@ export class EventDetailComponent implements OnInit {
 
   ticketQty = 1;
   seatNumber = '';
+
+  /** Upper bound = min(10, availableSeats) */
+  maxQty(): number {
+    const ev = this.event();
+    if (!ev) return 10;
+    const seatCap = ev.maxAttendees > 0 ? ev.availableSeats : 10;
+    return Math.min(10, seatCap);
+  }
+
+  incQty() { if (this.ticketQty < this.maxQty()) this.ticketQty++; }
+  decQty() { if (this.ticketQty > 1) this.ticketQty--; }
   reminderTitle = '';
   reminderDateTime = '';
   reminderType: any = 'Email';
@@ -382,26 +405,25 @@ export class EventDetailComponent implements OnInit {
     return new Date(ev.endDateTime) <= new Date();
   }
 
-  getBannerGradient(name?: string, color?: string): string {
-    const c = color || '#6366f1';
-    const gradients: Record<string, string> = {
-      music:    `linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, ${c}88 100%)`,
-      sport:    `linear-gradient(135deg, #134e5e 0%, #71b280 100%)`,
-      tech:     `linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)`,
-      art:      `linear-gradient(135deg, #f093fb 0%, #f5576c 100%)`,
-      food:     `linear-gradient(135deg, #f7971e 0%, #ffd200 100%)`,
-      business: `linear-gradient(135deg, #1c3c5a 0%, #2d6a9f 100%)`,
-      health:   `linear-gradient(135deg, #11998e 0%, #38ef7d 100%)`,
-      education:`linear-gradient(135deg, #4776e6 0%, #8e54e9 100%)`,
-      film:     `linear-gradient(135deg, #232526 0%, #414345 100%)`,
-      travel:   `linear-gradient(135deg, #2980b9 0%, #6dd5fa 80%, #fff 100%)`,
-    };
-    if (!name) return `linear-gradient(135deg, ${c}55, ${c}22)`;
-    const n = name.toLowerCase();
-    for (const [key, grad] of Object.entries(gradients)) {
-      if (n.includes(key)) return grad;
-    }
-    return `linear-gradient(135deg, ${c}88 0%, ${c}33 100%)`;
+  getBannerGradient(name?: string, color?: string): string { return ''; }
+
+  private readonly DETAIL_PHOTOS = [
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80',
+    'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&q=80',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80',
+    'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=1200&q=80',
+    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&q=80',
+    'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1200&q=80',
+    'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80',
+    'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&q=80',
+    'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&q=80',
+    'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&q=80',
+    'https://images.unsplash.com/photo-1563841930606-67e2bce48b78?w=1200&q=80',
+    'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&q=80',
+  ];
+
+  getEventDetailImg(id: number, categoryName?: string): string {
+    return this.DETAIL_PHOTOS[id % this.DETAIL_PHOTOS.length];
   }
 
   getCategoryIcon(name?: string): string {

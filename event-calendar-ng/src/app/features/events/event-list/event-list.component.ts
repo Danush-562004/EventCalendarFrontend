@@ -74,9 +74,10 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
         <div class="events-grid">
           @for (ev of events(); track ev.id) {
             <a [routerLink]="['/events', ev.id]" class="event-card">
-              <div class="event-card__img" [style.background]="getCardBg(ev.category?.name, ev.category?.colorCode)">
-                <span class="event-card__img-icon">{{ getCategoryIcon(ev.category?.name) }}</span>
+              <div class="event-card__img">
+                <img [src]="getEventImg(ev.id, ev.category?.name)" [alt]="ev.title" class="event-card__photo" loading="lazy">
                 <div class="event-card__img-overlay"></div>
+                <span class="event-card__img-icon">{{ getCategoryIcon(ev.category?.name) }}</span>
               </div>
               <div class="event-card__top" [style.border-top-color]="ev.category?.colorCode">
                 <span class="event-card__cat" [style.background]="ev.category?.colorCode + '22'" [style.color]="ev.category?.colorCode">{{ ev.category?.name }}</span>
@@ -138,8 +139,8 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
     </div>
   `,
   styles: [`
-    .top-row { display: flex; gap: 1.25rem; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .filter-bar { flex: 1; min-width: 260px; display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
+    .top-row { display: flex; gap: 1.25rem; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-bar { flex: 1; min-width: 0; display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
     .search-wrap { position: relative; flex: 1; min-width: 160px; }
     .search-icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); font-size: .875rem; pointer-events: none; }
     .search-input { width: 100%; padding: .5rem .75rem .5rem 2.25rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; font-family: inherit; }
@@ -169,12 +170,14 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
     .cal-clear:hover { color: var(--danger); background: rgba(255,59,48,.08); }
     .events-wrap { transition: opacity .2s; }
     .events-wrap--loading { opacity: .45; pointer-events: none; }
-    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; min-height: 200px; }
+    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
     .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; border-top: 3px solid transparent; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
     .event-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
-    .event-card__img { height: 140px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-    .event-card__img-icon { font-size: 3.5rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,.25)); position: relative; z-index: 1; }
-    .event-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,.18)); }
+    .event-card__img { height: 160px; position: relative; overflow: hidden; }
+    .event-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+    .event-card:hover .event-card__photo { transform: scale(1.06); }
+    .event-card__img-icon { position: absolute; bottom: .5rem; right: .75rem; font-size: 1.5rem; z-index: 2; filter: drop-shadow(0 1px 4px rgba(0,0,0,.5)); }
+    .event-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.45)); z-index: 1; }
     .event-card__top { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1rem .5rem; }
     .event-card__cat { font-size: .75rem; font-weight: 600; padding: .25rem .625rem; border-radius: 6px; }
     .event-card__body { flex: 1; padding: .5rem 1rem .875rem; }
@@ -352,22 +355,24 @@ export class EventListComponent implements OnInit {
 
   isExpired(ev: EventResponse): boolean { return new Date(ev.endDateTime) <= new Date(); }
 
-  getCardBg(name?: string, color?: string): string {
-    const c = color || '#6366f1';
-    const n = (name || '').toLowerCase();
-    if (n.includes('music') || n.includes('concert')) return `linear-gradient(135deg,#1a1a2e,#16213e,${c}99)`;
-    if (n.includes('sport') || n.includes('game'))    return `linear-gradient(135deg,#134e5e,#71b280)`;
-    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return `linear-gradient(135deg,#0f0c29,#302b63,#24243e)`;
-    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return `linear-gradient(135deg,#f093fb,#f5576c)`;
-    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return `linear-gradient(135deg,#f7971e,#ffd200)`;
-    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return `linear-gradient(135deg,#1c3c5a,#2d6a9f)`;
-    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return `linear-gradient(135deg,#11998e,#38ef7d)`;
-    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return `linear-gradient(135deg,#4776e6,#8e54e9)`;
-    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return `linear-gradient(135deg,#232526,#414345)`;
-    if (n.includes('travel') || n.includes('tour')) return `linear-gradient(135deg,#2980b9,#6dd5fa)`;
-    if (n.includes('fashion') || n.includes('style')) return `linear-gradient(135deg,#fc5c7d,#6a3093)`;
-    if (n.includes('charity') || n.includes('fundrais')) return `linear-gradient(135deg,#e96c6c,#f7b733)`;
-    return `linear-gradient(135deg,${c}cc,${c}44)`;
+  // Verified Unsplash photo URLs — party, festival, concert images
+  private readonly EVENT_PHOTOS = [
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80', // concert crowd
+    'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&q=80', // festival
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80', // concert stage lights
+    'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=600&q=80', // party crowd
+    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=80', // concert lights
+    'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=600&q=80', // festival crowd
+    'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80', // event stage
+    'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&q=80', // concert
+    'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=600&q=80', // music festival
+    'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=600&q=80', // party
+    'https://images.unsplash.com/photo-1563841930606-67e2bce48b78?w=600&q=80', // festival lights
+    'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80', // dj party
+  ];
+
+  getEventImg(id: number, categoryName?: string): string {
+    return this.EVENT_PHOTOS[id % this.EVENT_PHOTOS.length];
   }
 
   getCategoryIcon(name?: string): string {

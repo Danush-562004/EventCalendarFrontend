@@ -31,7 +31,9 @@ import { VenueResponse } from '../../core/models';
         <div class="venues-grid">
           @for (v of venues(); track v.id) {
             <div class="venue-card">
-              <div class="venue-card__img" [style.background]="getVenueBg(v.name, v.city)">
+              <div class="venue-card__img">
+                <img [src]="getVenueImg(v.id, v.name)" [alt]="v.name" class="venue-card__photo" loading="lazy">
+                <div class="venue-card__img-overlay"></div>
                 <span class="venue-card__img-icon">{{ getVenueIcon(v.name) }}</span>
               </div>
               <div class="venue-card__content">
@@ -133,11 +135,14 @@ import { VenueResponse } from '../../core/models';
     </div>
   `,
   styles: [`
-    .venues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+    .venues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
     .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
     .venue-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
-    .venue-card__img { height: 130px; display: flex; align-items: center; justify-content: center; position: relative; }
-    .venue-card__img-icon { font-size: 3.5rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,.3)); }
+    .venue-card__img { height: 160px; position: relative; overflow: hidden; }
+    .venue-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+    .venue-card:hover .venue-card__photo { transform: scale(1.06); }
+    .venue-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.5)); z-index: 1; }
+    .venue-card__img-icon { position: absolute; bottom: .5rem; right: .75rem; font-size: 1.5rem; z-index: 2; filter: drop-shadow(0 1px 4px rgba(0,0,0,.6)); }
     .venue-card__content { flex: 1; padding: 1.25rem; display: flex; flex-direction: column; gap: .625rem; }
     .venue-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
     .venue-card__name { font-size: 1.0625rem; font-weight: 700; color: var(--text); }
@@ -241,15 +246,23 @@ export class VenuesComponent implements OnInit {
     return '🏛️';
   }
 
-  getVenueBg(name: string, city: string): string {
-    const n = (name + ' ' + city).toLowerCase();
-    if (n.includes('stadium') || n.includes('arena') || n.includes('sport')) return 'linear-gradient(135deg,#134e5e,#71b280)';
-    if (n.includes('hall') || n.includes('auditorium') || n.includes('theater')) return 'linear-gradient(135deg,#1a1a2e,#16213e)';
-    if (n.includes('hotel') || n.includes('resort')) return 'linear-gradient(135deg,#c9a96e,#8b6914)';
-    if (n.includes('park') || n.includes('garden') || n.includes('outdoor')) return 'linear-gradient(135deg,#1d976c,#93f9b9)';
-    if (n.includes('club') || n.includes('lounge')) return 'linear-gradient(135deg,#360033,#0b8793)';
-    if (n.includes('museum') || n.includes('gallery')) return 'linear-gradient(135deg,#4b6cb7,#182848)';
-    if (n.includes('conference') || n.includes('center')) return 'linear-gradient(135deg,#1c3c5a,#2d6a9f)';
-    return 'linear-gradient(135deg,#2c3e50,#4ca1af)';
+  // Verified Unsplash photo URLs — famous monuments and landmarks
+  private readonly VENUE_PHOTOS = [
+    'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&q=80', // Taj Mahal
+    'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80', // Eiffel Tower
+    'https://images.unsplash.com/photo-1555993539-1732b0258235?w=600&q=80', // Colosseum
+    'https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?w=600&q=80', // Big Ben
+    'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&q=80', // Great Wall
+    'https://images.unsplash.com/photo-1568515387631-8b650bbcdb90?w=600&q=80', // Burj Khalifa
+    'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=600&q=80', // Statue of Liberty
+    'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?w=600&q=80', // Sydney Opera House
+    'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&q=80', // India Gate
+    'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=600&q=80', // Lotus Temple
+    'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=600&q=80', // Mall interior
+    'https://images.unsplash.com/photo-1519567770579-c2fc5836898d?w=600&q=80', // Stadium
+  ];
+
+  getVenueImg(id: number, name: string): string {
+    return this.VENUE_PHOTOS[id % this.VENUE_PHOTOS.length];
   }
 }
