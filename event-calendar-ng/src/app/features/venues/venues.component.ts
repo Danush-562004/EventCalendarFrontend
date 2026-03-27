@@ -28,13 +28,23 @@ import { VenueResponse } from '../../core/models';
       @if (loading()) {
         <app-loading text="Loading venues…" />
       } @else {
+        <!-- Search bar -->
+        <div class="venue-search-bar">
+          <div class="vsb-wrap">
+            <span class="vsb-icon">🔍</span>
+            <input class="vsb-input" [(ngModel)]="searchQuery" (input)="applySearch()" placeholder="Search by name or location…">
+            @if (searchQuery) {
+              <button class="vsb-clear" (click)="searchQuery = ''; applySearch()">✕</button>
+            }
+          </div>
+        </div>
+
         <div class="venues-grid">
-          @for (v of venues(); track v.id) {
+          @for (v of filteredVenues(); track v.id) {
             <div class="venue-card">
               <div class="venue-card__img">
                 <img [src]="getVenueImg(v.id, v.name)" [alt]="v.name" class="venue-card__photo" loading="lazy">
                 <div class="venue-card__img-overlay"></div>
-                <span class="venue-card__img-icon">{{ getVenueIcon(v.name) }}</span>
               </div>
               <div class="venue-card__content">
                 <div class="venue-card__header">
@@ -136,13 +146,19 @@ import { VenueResponse } from '../../core/models';
   `,
   styles: [`
     .venues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+    .venue-search-bar { margin-bottom: 1.25rem; }
+    .vsb-wrap { display: flex; align-items: center; gap: .5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .5rem 1rem; }
+    .vsb-icon { font-size: .875rem; flex-shrink: 0; }
+    .vsb-input { flex: 1; border: none; background: none; font-size: .9375rem; color: var(--text); font-family: inherit; outline: none; }
+    .vsb-input::placeholder { color: var(--muted); }
+    .vsb-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .875rem; padding: 0 .25rem; }
+    .vsb-clear:hover { color: var(--text); }
     .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
     .venue-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
     .venue-card__img { height: 160px; position: relative; overflow: hidden; }
     .venue-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
     .venue-card:hover .venue-card__photo { transform: scale(1.06); }
-    .venue-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.5)); z-index: 1; }
-    .venue-card__img-icon { position: absolute; bottom: .5rem; right: .75rem; font-size: 1.5rem; z-index: 2; filter: drop-shadow(0 1px 4px rgba(0,0,0,.6)); }
+    .venue-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.3)); z-index: 1; }
     .venue-card__content { flex: 1; padding: 1.25rem; display: flex; flex-direction: column; gap: .625rem; }
     .venue-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
     .venue-card__name { font-size: 1.0625rem; font-weight: 700; color: var(--text); }
@@ -178,9 +194,24 @@ export class VenuesComponent implements OnInit {
   page = signal(1);
   pageSize = 12;
   totalCount = signal(0);
+  searchQuery = '';
   editTarget: VenueResponse | null = null;
   deleteTarget: VenueResponse | null = null;
   confirmDelete = false;
+
+  filteredVenues(): VenueResponse[] {
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return this.venues();
+    return this.venues().filter(v =>
+      v.name.toLowerCase().includes(q) ||
+      v.city.toLowerCase().includes(q) ||
+      v.state.toLowerCase().includes(q) ||
+      v.country.toLowerCase().includes(q) ||
+      v.address.toLowerCase().includes(q)
+    );
+  }
+
+  applySearch() { /* triggers change detection via binding */ }
 
   f = { name: '', address: '', city: '', state: '', country: '', zipCode: '', capacity: 100, description: '', contactEmail: '', contactPhone: '' };
 

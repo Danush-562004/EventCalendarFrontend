@@ -77,7 +77,6 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
               <div class="event-card__img">
                 <img [src]="getEventImg(ev.id, ev.category?.name)" [alt]="ev.title" class="event-card__photo" loading="lazy">
                 <div class="event-card__img-overlay"></div>
-                <span class="event-card__img-icon">{{ getCategoryIcon(ev.category?.name) }}</span>
               </div>
               <div class="event-card__top" [style.border-top-color]="ev.category?.colorCode">
                 <span class="event-card__cat" [style.background]="ev.category?.colorCode + '22'" [style.color]="ev.category?.colorCode">{{ ev.category?.name }}</span>

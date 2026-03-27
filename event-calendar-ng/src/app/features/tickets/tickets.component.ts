@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -73,9 +73,15 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
                 }
                 <div class="ticket-card__actions">
                 @if (tk.status !== 'Cancelled' && !auth.isAdmin()) {
-                  @if (!hasCompletedPayment(tk) && !isEventExpired(tk)) {
+                  @if (!hasCompletedPayment(tk) && !isEventExpired(tk) && !isPaymentExpired(tk)) {
+                    <div class="pay-timer" [class.pay-timer--urgent]="getSecondsLeft(tk) <= 60">
+                      ⏱ Pay within {{ formatTimer(tk) }}
+                    </div>
                     <button class="btn btn--ghost btn--sm" (click)="openPayment(tk)">Pay</button>
                     <button class="btn btn--danger btn--sm" (click)="cancelTarget = tk; confirmCancel = true">Cancel</button>
+                  }
+                  @if (!hasCompletedPayment(tk) && !isEventExpired(tk) && isPaymentExpired(tk)) {
+                    <span class="badge badge--red">⏰ Payment Time Exceeded</span>
                   }
                   @if (isEventExpired(tk) && !hasCompletedPayment(tk)) {
                     <span class="badge badge--gray">Event Ended</span>
@@ -176,7 +182,10 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
     .ticket-card__info { font-size: .8125rem; color: var(--muted); }
     .ticket-card__date { font-size: .75rem; color: var(--muted); }
     .ticket-card__right { display: flex; flex-direction: column; align-items: flex-end; gap: .75rem; justify-content: space-between; flex-shrink: 0; }
-    .ticket-card__actions { display: flex; gap: .5rem; }
+    .ticket-card__actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .pay-timer { font-size: .8125rem; font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; padding: .25rem .5rem; background: rgba(16,185,129,.1); border-radius: 6px; }
+    .pay-timer--urgent { color: #ef4444; background: rgba(239,68,68,.1); animation: timerPulse 1s ease-in-out infinite; }
+    @keyframes timerPulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
     .payment-summary { display: flex; flex-direction: column; gap: .375rem; }
     .payment-row { display: flex; gap: .625rem; align-items: center; font-size: .8125rem; color: var(--muted); }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(8px); }
@@ -203,7 +212,7 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
     .filter-price { padding: .5rem .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .875rem; width: 90px; }
   `]
 })
-export class TicketsComponent implements OnInit {
+export class TicketsComponent implements OnInit, OnDestroy {
   auth = inject(AuthStore);
   private ticketApi = inject(TicketApiService);
   private paymentApi = inject(PaymentApiService);
@@ -215,6 +224,10 @@ export class TicketsComponent implements OnInit {
   paying = signal(false);
   confirmCancel = false;
   cancelTarget: TicketResponse | null = null;
+
+  // Tick signal — increments every second to force timer re-evaluation
+  private tick = signal(0);
+  private timerInterval?: ReturnType<typeof setInterval>;
 
   filterKeyword = '';
   filterStatus = '';
@@ -247,7 +260,26 @@ export class TicketsComponent implements OnInit {
   payTxnId = '';
   payNotes = '';
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    // Tick every second to update countdown timers
+    this.timerInterval = setInterval(() => {
+      this.tick.update(v => v + 1);
+      // Auto-expire tickets whose payment window has passed
+      this.tickets.update(list =>
+        list.map(tk => {
+          if (tk.status === 'Reserved' && !this.hasCompletedPayment(tk) && this.isPaymentExpired(tk)) {
+            return { ...tk, status: 'PaymentExpired' };
+          }
+          return tk;
+        })
+      );
+    }, 1000);
+  }
+
+  ngOnDestroy() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+  }
 
   load() {
     this.loading.set(true);
@@ -286,6 +318,13 @@ export class TicketsComponent implements OnInit {
     // Block payment if event has expired
     if (this.isEventExpired(tk)) {
       this.toast.error('This event has ended. Payment cannot be processed.');
+      this.paymentTarget.set(null);
+      return;
+    }
+
+    // Block payment if 5-min window has passed
+    if (this.isPaymentExpired(tk)) {
+      this.toast.error('Payment window expired. Please book a new ticket.');
       this.paymentTarget.set(null);
       return;
     }
@@ -371,5 +410,27 @@ export class TicketsComponent implements OnInit {
   isEventExpired(tk: TicketResponse): boolean {
     if (!tk.eventEndDateTime) return false;
     return new Date(tk.eventEndDateTime) <= new Date();
+  }
+
+  isPaymentExpired(tk: TicketResponse): boolean {
+    this.tick();
+    if (!tk.paymentDeadline) return false;
+    const deadlineStr = tk.paymentDeadline.endsWith('Z') ? tk.paymentDeadline : tk.paymentDeadline + 'Z';
+    return new Date(deadlineStr) <= new Date();
+  }
+
+  getSecondsLeft(tk: TicketResponse): number {
+    this.tick();
+    if (!tk.paymentDeadline) return 0;
+    // Ensure deadline is parsed as UTC (backend sends UTC, append Z if missing)
+    const deadlineStr = tk.paymentDeadline.endsWith('Z') ? tk.paymentDeadline : tk.paymentDeadline + 'Z';
+    return Math.max(0, Math.floor((new Date(deadlineStr).getTime() - Date.now()) / 1000));
+  }
+
+  formatTimer(tk: TicketResponse): string {
+    const secs = this.getSecondsLeft(tk);
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
   }
 }

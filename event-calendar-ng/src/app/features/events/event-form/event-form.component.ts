@@ -52,10 +52,10 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
                 </div>
                 <div class="form-field">
                   <label class="form-label">Venue</label>
-                  <select class="form-select" formControlName="venueId">
+                  <select class="form-select" formControlName="venueId" (change)="onVenueChange()">
                     <option value="">No venue</option>
                     @for (v of venues(); track v.id) {
-                      <option [value]="v.id">{{ v.name }} – {{ v.city }}</option>
+                      <option [value]="v.id">{{ v.name }} – {{ v.city }} (cap: {{ v.capacity | number }})</option>
                     }
                   </select>
                 </div>
@@ -64,8 +64,17 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
                   <input class="form-input" formControlName="location" placeholder="e.g. Online / Room 5">
                 </div>
                 <div class="form-field">
-                  <label class="form-label">Max Attendees <span class="optional">(0 = unlimited)</span></label>
-                  <input class="form-input" type="number" formControlName="maxAttendees" min="0">
+                  <label class="form-label">
+                    Max Attendees
+                    @if (selectedVenueCapacity()) {
+                      <span class="capacity-hint"> — venue cap: {{ selectedVenueCapacity() | number }}</span>
+                    }
+                  </label>
+                  <input class="form-input" type="number" formControlName="maxAttendees" min="0"
+                    [max]="selectedVenueCapacity() || 999999">
+                  @if (selectedVenueCapacity() && (f['maxAttendees'].value ?? 0) > selectedVenueCapacity()!) {
+                    <span class="form-error">Cannot exceed venue capacity of {{ selectedVenueCapacity() | number }}</span>
+                  }
                 </div>
                 <div class="form-field">
                     <label class="form-label">Ticket Price <span class="optional">(0 = Free)</span></label>
@@ -148,6 +157,7 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
     .toggle-checkbox:checked + .toggle-slider::after { transform: translateX(20px); }
     .back-link { display: inline-flex; align-items: center; gap: .375rem; color: var(--muted); font-size: .875rem; text-decoration: none; margin-bottom: 1.5rem; }
     .back-link:hover { color: var(--text); }
+    .capacity-hint { color: var(--accent); font-weight: 600; font-size: .75rem; }
   `]
 })
 export class EventFormComponent implements OnInit {
@@ -165,6 +175,7 @@ export class EventFormComponent implements OnInit {
   isEdit = signal(false);
   categories = signal<CategoryResponse[]>([]);
   venues = signal<VenueResponse[]>([]);
+  selectedVenueCapacity = signal<number | null>(null);
   private eventId?: number;
 
   // Minimum datetime = now (prevents selecting past dates)
@@ -186,9 +197,35 @@ export class EventFormComponent implements OnInit {
 
   get f() { return this.form.controls; }
 
+  onVenueChange() {
+    const venueId = this.form.value.venueId;
+    if (!venueId) {
+      this.selectedVenueCapacity.set(null);
+      return;
+    }
+    const venue = this.venues().find(v => v.id === Number(venueId));
+    this.selectedVenueCapacity.set(venue?.capacity ?? null);
+    // Auto-clamp maxAttendees if it exceeds the new venue capacity
+    const cap = venue?.capacity ?? 0;
+    const current = this.form.value.maxAttendees ?? 0;
+    if (cap > 0 && current > cap) {
+      this.form.patchValue({ maxAttendees: cap });
+    }
+  }
+
   ngOnInit() {
     this.categoryApi.getAll(1, 100).subscribe({ next: r => this.categories.set(r.items) });
-    this.venueApi.getAll(1, 100).subscribe({ next: r => this.venues.set(r.items) });
+    this.venueApi.getAll(1, 100).subscribe({
+      next: r => {
+        this.venues.set(r.items);
+        // If editing, set venue capacity once venues are loaded
+        const venueId = this.form.value.venueId;
+        if (venueId) {
+          const venue = r.items.find(v => v.id === Number(venueId));
+          this.selectedVenueCapacity.set(venue?.capacity ?? null);
+        }
+      }
+    });
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -210,6 +247,10 @@ export class EventFormComponent implements OnInit {
             venueId: ev.venue?.id ?? null,
             price: ev.price ?? 0
           });
+          // Set venue capacity from the loaded event
+          if (ev.venue) {
+            this.selectedVenueCapacity.set(ev.venue.capacity);
+          }
           this.loading.set(false);
         },
         error: () => this.loading.set(false)
@@ -219,6 +260,15 @@ export class EventFormComponent implements OnInit {
 
   submit() {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+
+    // Validate venue capacity
+    const cap = this.selectedVenueCapacity();
+    const maxAtt = this.form.value.maxAttendees ?? 0;
+    if (cap && maxAtt > 0 && maxAtt > cap) {
+      this.toast.error(`Max attendees (${maxAtt}) cannot exceed venue capacity (${cap}).`);
+      return;
+    }
+
     this.saving.set(true);
     const v = this.form.value;
     const payload: any = {

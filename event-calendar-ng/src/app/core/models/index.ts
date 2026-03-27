@@ -189,6 +189,7 @@ export interface TicketResponse {
   checkedIn: boolean;
   checkInTime?: string;
   createdAt: string;
+  paymentDeadline: string;
   eventId: number;
   eventTitle: string;
   eventEndDateTime: string;
