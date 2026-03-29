@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { VenueApiService } from '../../core/services/api.service';
 import { AuthStore } from '../../core/services/auth.store';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -41,7 +42,8 @@ import { VenueResponse } from '../../core/models';
 
         <div class="venues-grid">
           @for (v of filteredVenues(); track v.id) {
-            <div class="venue-card">
+            <div class="venue-card" (click)="browseVenue(v)" role="button" tabindex="0"
+              (keydown.enter)="browseVenue(v)">
               <div class="venue-card__img">
                 <img [src]="getVenueImg(v.id, v.name)" [alt]="v.name" class="venue-card__photo" loading="lazy">
                 <div class="venue-card__img-overlay"></div>
@@ -58,8 +60,9 @@ import { VenueResponse } from '../../core/models';
                   @if (v.contactEmail) { <div class="detail-item"><span class="detail-label">Email</span><span class="detail-val">{{ v.contactEmail }}</span></div> }
                   @if (v.contactPhone) { <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-val">{{ v.contactPhone }}</span></div> }
                 </div>
+                <div class="venue-card__browse">View events at this venue →</div>
                 @if (auth.isAdmin()) {
-                  <div class="venue-card__actions">
+                  <div class="venue-card__actions" (click)="$event.stopPropagation()">
                     <button class="btn btn--ghost btn--sm" (click)="openEdit(v)">✏️ Edit</button>
                     <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true">🗑 Delete</button>
                   </div>
@@ -153,8 +156,9 @@ import { VenueResponse } from '../../core/models';
     .vsb-input::placeholder { color: var(--muted); }
     .vsb-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .875rem; padding: 0 .25rem; }
     .vsb-clear:hover { color: var(--text); }
-    .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; cursor: pointer; }
     .venue-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
+    .venue-card__browse { font-size: .8125rem; color: var(--accent); font-weight: 600; margin-top: auto; padding-top: .5rem; }
     .venue-card__img { height: 160px; position: relative; overflow: hidden; }
     .venue-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
     .venue-card:hover .venue-card__photo { transform: scale(1.06); }
@@ -186,6 +190,7 @@ export class VenuesComponent implements OnInit {
   auth = inject(AuthStore);
   private api = inject(VenueApiService);
   private toast = inject(ToastService);
+  private router = inject(Router);
 
   loading = signal(true);
   saving = signal(false);
@@ -262,6 +267,10 @@ export class VenuesComponent implements OnInit {
   }
 
   onPage(p: number) { this.page.set(p); this.load(); }
+
+  browseVenue(v: VenueResponse) {
+    this.router.navigate(['/events'], { queryParams: { venueId: v.id, venueName: v.name } });
+  }
 
   getVenueIcon(name: string): string {
     const n = name.toLowerCase();

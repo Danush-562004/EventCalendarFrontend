@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CategoryApiService } from '../../core/services/api.service';
 import { AuthStore } from '../../core/services/auth.store';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -29,20 +30,23 @@ import { CategoryResponse } from '../../core/models';
       } @else {
         <div class="cat-grid">
           @for (cat of categories(); track cat.id) {
-            <div class="cat-card">
-              <div class="cat-card__banner" [style.background]="getCatBg(cat.name, cat.colorCode)">
-                <span class="cat-card__icon">{{ getCatIcon(cat.name) }}</span>
+            <div class="cat-card" (click)="browseCategory(cat)" role="button" tabindex="0"
+              (keydown.enter)="browseCategory(cat)">
+              <div class="cat-card__banner">
+                <img [src]="getCatImg(cat.id, cat.name)" [alt]="cat.name" class="cat-card__photo" loading="lazy">
+                <div class="cat-card__overlay"></div>
+                <span class="cat-card__label">{{ cat.name }}</span>
               </div>
               <div class="cat-card__body">
                 <div class="cat-card__top">
-                  <h3 class="cat-card__name">{{ cat.name }}</h3>
                   <span class="badge" [class]="cat.isActive ? 'badge--green' : 'badge--red'">{{ cat.isActive ? 'Active' : 'Inactive' }}</span>
+                  <span class="cat-card__browse">Browse events →</span>
                 </div>
                 @if (cat.description) { <p class="cat-card__desc">{{ cat.description }}</p> }
                 <div class="cat-card__color-strip" [style.background]="cat.colorCode"></div>
               </div>
               @if (auth.isAdmin()) {
-                <div class="cat-card__actions">
+                <div class="cat-card__actions" (click)="$event.stopPropagation()">
                   <button class="btn btn--ghost btn--xs" (click)="openEdit(cat)">✏️</button>
                   <button class="btn btn--danger btn--xs" (click)="deleteTarget = cat; confirmDelete = true">🗑</button>
                 </div>
@@ -101,13 +105,16 @@ import { CategoryResponse } from '../../core/models';
   `,
   styles: [`
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
-    .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
-    .cat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
-    .cat-card__banner { height: 100px; display: flex; align-items: center; justify-content: center; }
-    .cat-card__icon { font-size: 2.75rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,.2)); }
-    .cat-card__body { flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+    .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; cursor: pointer; }
+    .cat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,.14); }
+    .cat-card__banner { height: 140px; position: relative; overflow: hidden; }
+    .cat-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+    .cat-card:hover .cat-card__photo { transform: scale(1.08); }
+    .cat-card__overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.1) 0%, rgba(0,0,0,.55) 100%); }
+    .cat-card__label { position: absolute; bottom: .75rem; left: 1rem; font-size: 1rem; font-weight: 800; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.5); letter-spacing: -.01em; }
+    .cat-card__body { flex: 1; padding: .875rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
     .cat-card__top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-    .cat-card__name { font-size: .9375rem; font-weight: 700; color: var(--text); }
+    .cat-card__browse { font-size: .75rem; color: var(--accent); font-weight: 600; }
     .cat-card__desc { font-size: .8125rem; color: var(--muted); line-height: 1.5; }
     .cat-card__color-strip { height: 4px; border-radius: 2px; margin-top: auto; }
     .cat-card__actions { display: flex; gap: .375rem; justify-content: flex-end; padding: .625rem 1rem; border-top: 1px solid var(--border); }
@@ -128,6 +135,7 @@ export class CategoriesComponent implements OnInit {
   auth = inject(AuthStore);
   private api = inject(CategoryApiService);
   private toast = inject(ToastService);
+  private router = inject(Router);
 
   loading = signal(true);
   saving = signal(false);
@@ -188,35 +196,28 @@ export class CategoriesComponent implements OnInit {
     });
   }
 
-  getCatIcon(name: string): string {
-    const n = name.toLowerCase();
-    if (n.includes('music') || n.includes('concert')) return '🎵';
-    if (n.includes('sport') || n.includes('game'))    return '⚽';
-    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return '💻';
-    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return '🎨';
-    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return '🍽️';
-    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return '💼';
-    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return '🧘';
-    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return '📚';
-    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return '🎬';
-    if (n.includes('travel') || n.includes('tour')) return '✈️';
-    if (n.includes('fashion') || n.includes('style')) return '👗';
-    if (n.includes('charity') || n.includes('fundrais')) return '❤️';
-    return '🎭';
+  browseCategory(cat: CategoryResponse) {
+    // Navigate to events page with category pre-selected
+    this.router.navigate(['/events'], { queryParams: { categoryId: cat.id, categoryName: cat.name } });
   }
 
-  getCatBg(name: string, color: string): string {
-    const n = name.toLowerCase();
-    if (n.includes('music') || n.includes('concert')) return 'linear-gradient(135deg,#1a1a2e,#16213e)';
-    if (n.includes('sport') || n.includes('game'))    return 'linear-gradient(135deg,#134e5e,#71b280)';
-    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return 'linear-gradient(135deg,#0f0c29,#302b63)';
-    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return 'linear-gradient(135deg,#f093fb,#f5576c)';
-    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return 'linear-gradient(135deg,#f7971e,#ffd200)';
-    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return 'linear-gradient(135deg,#1c3c5a,#2d6a9f)';
-    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return 'linear-gradient(135deg,#11998e,#38ef7d)';
-    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return 'linear-gradient(135deg,#4776e6,#8e54e9)';
-    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return 'linear-gradient(135deg,#232526,#414345)';
-    if (n.includes('travel') || n.includes('tour')) return 'linear-gradient(135deg,#2980b9,#6dd5fa)';
-    return `linear-gradient(135deg,${color}cc,${color}44)`;
+  // Verified Unsplash nature/scenery photos — colorful and vibrant
+  private readonly CAT_PHOTOS = [
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80', // mountain sunrise
+    'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80', // forest light
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80', // green hills
+    'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=600&q=80', // autumn forest
+    'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&q=80', // waterfall
+    'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600&q=80', // lake reflection
+    'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=600&q=80', // tropical beach
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80', // ocean sunset
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80', // snowy peaks
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=80', // pine forest
+    'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600&q=80', // lavender field
+    'https://images.unsplash.com/photo-1462275646964-a0e3386b89fa?w=600&q=80', // cherry blossom
+  ];
+
+  getCatImg(id: number, name: string): string {
+    return this.CAT_PHOTOS[id % this.CAT_PHOTOS.length];
   }
 }

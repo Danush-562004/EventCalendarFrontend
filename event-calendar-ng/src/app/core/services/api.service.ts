@@ -136,6 +136,7 @@ export class EventApiService {
       .set('pageSize', filter.pageSize ?? 20);
     if (filter.keyword)    params = params.set('keyword',    filter.keyword);
     if (filter.categoryId) params = params.set('categoryId', filter.categoryId);
+    if (filter.venueId)    params = params.set('venueId',    filter.venueId);
     if (filter.startDate)  params = params.set('startDate',  filter.startDate);
     if (filter.endDate)    params = params.set('endDate',    filter.endDate);
     if (filter.minPrice != null) params = params.set('minPrice', filter.minPrice);

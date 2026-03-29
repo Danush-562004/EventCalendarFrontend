@@ -98,6 +98,20 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
             }
           </div>
 
+          <!-- Sign in to book — guests only -->
+          @if (!auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
+            <div class="ticket-section signin-cta">
+              <div class="signin-cta__body">
+                <span class="signin-cta__icon">🎟️</span>
+                <div>
+                  <p class="signin-cta__title">Want to attend this event?</p>
+                  <p class="signin-cta__sub">Sign in to book your tickets.</p>
+                </div>
+                <a routerLink="/auth/login" class="btn">Sign in to Book Tickets</a>
+              </div>
+            </div>
+          }
+
           <!-- Book Ticket Section (users only) -->
           @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
             <div class="ticket-section">
@@ -267,6 +281,12 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .mono { font-family: 'JetBrains Mono', monospace; font-size: .8125rem; }
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
     .past-event-banner { background: rgba(255,59,48,.08); border: 1px solid rgba(255,59,48,.2); border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; color: #c0392b; margin-bottom: 1rem; font-weight: 500; }
+    .signin-cta { background: rgba(0,113,227,.04); border: 1px solid rgba(0,113,227,.15) !important; border-radius: 14px; }
+    .signin-cta__body { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .signin-cta__icon { font-size: 2rem; flex-shrink: 0; }
+    .signin-cta__title { font-size: .9375rem; font-weight: 700; color: var(--text); margin: 0; }
+    .signin-cta__sub { font-size: .8125rem; color: var(--muted); margin: .125rem 0 0; }
+    .signin-cta .btn { margin-left: auto; white-space: nowrap; }
   `]
 })
 export class EventDetailComponent implements OnInit {
