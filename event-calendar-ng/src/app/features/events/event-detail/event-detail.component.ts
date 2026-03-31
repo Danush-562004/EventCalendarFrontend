@@ -98,6 +98,16 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
             }
           </div>
 
+          <!-- Sign in prompt for guests -->
+          @if (!auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
+            <div class="ticket-section">
+              <div class="guest-cta">
+                <span class="guest-cta__text">Want to attend this event?</span>
+                <a routerLink="/auth/login" class="btn">Sign in to book tickets</a>
+              </div>
+            </div>
+          }
+
           <!-- Book Ticket Section (users only) -->
           @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
             <div class="ticket-section">
@@ -250,6 +260,8 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .avail-badge { font-size: .8125rem; font-weight: 600; padding: .375rem .875rem; border-radius: 20px; background: rgba(16,185,129,.12); color: #10b981; }
     .avail-badge--low { background: rgba(245,158,11,.12); color: #f59e0b; }
     .avail-badge--full { background: rgba(239,68,68,.12); color: #ef4444; }
+    .guest-cta { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .guest-cta__text { font-size: .9375rem; color: var(--muted); }
     .price-badge { font-size: .8125rem; font-weight: 700; padding: .375rem .875rem; border-radius: 20px; background: rgba(167,139,250,.12); color: var(--accent); }
     .price-badge--free { background: rgba(16,185,129,.12); color: #10b981; }
     .ticket-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }

@@ -50,7 +50,6 @@ import { ToastService } from '../toast/toast.service';
             }
           </div>
         } @else {
-          <button class="nav-link" (click)="requireLogin('My Tickets'); menuOpen.set(false)">My Tickets</button>
           <a routerLink="/auth/login"    class="btn btn--sm btn--ghost">Sign In</a>
           <a routerLink="/auth/register" class="btn btn--sm">Get Started</a>
         }
