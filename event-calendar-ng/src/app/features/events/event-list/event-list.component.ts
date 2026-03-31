@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EventApiService, CategoryApiService } from '../../../core/services/api.service';
@@ -209,6 +209,7 @@ export class EventListComponent implements OnInit {
   auth = inject(AuthStore);
   private eventApi    = inject(EventApiService);
   private categoryApi = inject(CategoryApiService);
+  private route       = inject(ActivatedRoute);
 
   loading          = signal(false);
   events           = signal<EventResponse[]>([]);
@@ -220,6 +221,7 @@ export class EventListComponent implements OnInit {
 
   keyword          = '';
   selectedCategory: any = '';
+  selectedVenueId: number | null = null;
   minPrice: number | '' = '';
   maxPrice: number | '' = '';
   private searchTimer: any;
@@ -310,6 +312,10 @@ export class EventListComponent implements OnInit {
   ngOnInit() {
     this.categoryApi.getAll(1, 100).subscribe({ next: r => this.categories.set(r.items) });
     this.eventApi.getAll(1, 1000).subscribe({ next: r => this.allEvents.set(r.items) });
+    const catId   = this.route.snapshot.queryParamMap.get('categoryId');
+    const venueId = this.route.snapshot.queryParamMap.get('venueId');
+    if (catId)   this.selectedCategory = catId;
+    if (venueId) this.selectedVenueId  = +venueId;
     this.loadEvents();
   }
 
@@ -319,8 +325,9 @@ export class EventListComponent implements OnInit {
     const filter: any = { page: this.page(), pageSize: this.pageSize };
     if (this.keyword)          filter.keyword    = this.keyword;
     if (this.selectedCategory) filter.categoryId = this.selectedCategory;
-    if (this.minPrice !== '')  filter.minPrice   = this.minPrice;
-    if (this.maxPrice !== '')  filter.maxPrice   = this.maxPrice;
+    if (this.selectedVenueId)  filter.venueId    = this.selectedVenueId;
+    if (this.minPrice !== '')   filter.minPrice   = this.minPrice;
+    if (this.maxPrice !== '')   filter.maxPrice   = this.maxPrice;
     if (day !== null) {
       const pad = (n: number) => String(n).padStart(2, '0');
       const y = this.calYear(), m = this.calMonth() + 1;
@@ -331,7 +338,7 @@ export class EventListComponent implements OnInit {
       filter.startDate = dateStr;
       filter.endDate   = nextDateStr;
     }
-    const hasFilter = this.keyword || this.selectedCategory || this.minPrice !== '' || this.maxPrice !== '' || day !== null;
+    const hasFilter = this.keyword || this.selectedCategory || this.selectedVenueId || this.minPrice !== '' || this.maxPrice !== '' || day !== null;
     const call = hasFilter ? this.eventApi.search(filter) : this.eventApi.getAll(this.page(), this.pageSize);
     call.subscribe({
       next: r => { this.events.set(r.items); this.totalCount.set(r.totalCount); this.loading.set(false); },
@@ -346,7 +353,7 @@ export class EventListComponent implements OnInit {
   }
 
   clearFilters() {
-    this.keyword = ''; this.selectedCategory = ''; this.minPrice = ''; this.maxPrice = '';
+    this.keyword = ''; this.selectedCategory = ''; this.selectedVenueId = null; this.minPrice = ''; this.maxPrice = '';
     this.selectedCalDay.set(null); this.page.set(1); this.loadEvents();
   }
 

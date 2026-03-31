@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { VenueApiService } from '../../core/services/api.service';
 import { AuthStore } from '../../core/services/auth.store';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -41,7 +42,7 @@ import { VenueResponse } from '../../core/models';
 
         <div class="venues-grid">
           @for (v of filteredVenues(); track v.id) {
-            <div class="venue-card">
+            <div class="venue-card" (click)="browseVenue(v)">
               <div class="venue-card__img">
                 <img [src]="getVenueImg(v.id, v.name)" [alt]="v.name" class="venue-card__photo" loading="lazy">
                 <div class="venue-card__img-overlay"></div>
@@ -58,10 +59,11 @@ import { VenueResponse } from '../../core/models';
                   @if (v.contactEmail) { <div class="detail-item"><span class="detail-label">Email</span><span class="detail-val">{{ v.contactEmail }}</span></div> }
                   @if (v.contactPhone) { <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-val">{{ v.contactPhone }}</span></div> }
                 </div>
+                <span class="venue-card__browse">View events →</span>
                 @if (auth.isAdmin()) {
                   <div class="venue-card__actions">
-                    <button class="btn btn--ghost btn--sm" (click)="openEdit(v)">✏️ Edit</button>
-                    <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true">🗑 Delete</button>
+                    <button class="btn btn--ghost btn--sm" (click)="openEdit(v); $event.stopPropagation()">✏️ Edit</button>
+                    <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true; $event.stopPropagation()">🗑 Delete</button>
                   </div>
                 }
               </div>
@@ -153,7 +155,7 @@ import { VenueResponse } from '../../core/models';
     .vsb-input::placeholder { color: var(--muted); }
     .vsb-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .875rem; padding: 0 .25rem; }
     .vsb-clear:hover { color: var(--text); }
-    .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .venue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; cursor: pointer; }
     .venue-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
     .venue-card__img { height: 160px; position: relative; overflow: hidden; }
     .venue-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
@@ -169,6 +171,7 @@ import { VenueResponse } from '../../core/models';
     .detail-label { font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
     .detail-val { font-size: .8125rem; font-weight: 600; color: var(--text); }
     .venue-card__actions { display: flex; gap: .5rem; padding-top: .625rem; border-top: 1px solid var(--border); margin-top: auto; }
+    .venue-card__browse { font-size: .8125rem; font-weight: 600; color: var(--accent); margin-top: .25rem; display: block; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(440px, 90vw); display: flex; flex-direction: column; gap: 1rem; animation: popIn .2s ease; }
     .modal--wide { width: min(700px, 90vw); }
@@ -186,6 +189,7 @@ export class VenuesComponent implements OnInit {
   auth = inject(AuthStore);
   private api = inject(VenueApiService);
   private toast = inject(ToastService);
+  private router = inject(Router);
 
   loading = signal(true);
   saving = signal(false);
@@ -262,6 +266,10 @@ export class VenuesComponent implements OnInit {
   }
 
   onPage(p: number) { this.page.set(p); this.load(); }
+
+  browseVenue(v: VenueResponse) {
+    this.router.navigate(['/events'], { queryParams: { venueId: v.id } });
+  }
 
   getVenueIcon(name: string): string {
     const n = name.toLowerCase();

@@ -36,7 +36,7 @@ export const routes: Routes = [
   { path: 'admin',      component: AdminComponent,       canActivate: [authGuard, adminGuard] },
   { path: 'tickets',    component: TicketsComponent,     canActivate: [authGuard] },
   { path: 'reminders',  component: RemindersComponent,   canActivate: [authGuard, userGuard] },
-  { path: 'categories', component: CategoriesComponent,  canActivate: [authGuard] },
+  { path: 'categories', component: CategoriesComponent },
   { path: 'profile',    component: ProfileComponent,     canActivate: [authGuard] },
 
   { path: '**', component: NotFoundComponent }

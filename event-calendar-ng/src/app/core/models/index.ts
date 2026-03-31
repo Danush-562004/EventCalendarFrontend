@@ -169,6 +169,7 @@ export interface UpdateEventRequest {
 export interface EventFilterRequest {
   keyword?: string;
   categoryId?: number;
+  venueId?: number;
   startDate?: string;
   endDate?: string;
   minPrice?: number;

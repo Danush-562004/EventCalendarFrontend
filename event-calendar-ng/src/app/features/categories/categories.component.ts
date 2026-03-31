@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CategoryApiService } from '../../core/services/api.service';
 import { AuthStore } from '../../core/services/auth.store';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -29,7 +30,7 @@ import { CategoryResponse } from '../../core/models';
       } @else {
         <div class="cat-grid">
           @for (cat of categories(); track cat.id) {
-            <div class="cat-card">
+            <div class="cat-card cat-card--clickable" (click)="browseCategory(cat)">
               <div class="cat-card__banner" [style.background]="getCatBg(cat.name, cat.colorCode)">
                 <span class="cat-card__icon">{{ getCatIcon(cat.name) }}</span>
               </div>
@@ -40,11 +41,12 @@ import { CategoryResponse } from '../../core/models';
                 </div>
                 @if (cat.description) { <p class="cat-card__desc">{{ cat.description }}</p> }
                 <div class="cat-card__color-strip" [style.background]="cat.colorCode"></div>
+                <span class="cat-card__browse">Browse events →</span>
               </div>
               @if (auth.isAdmin()) {
                 <div class="cat-card__actions">
-                  <button class="btn btn--ghost btn--xs" (click)="openEdit(cat)">✏️</button>
-                  <button class="btn btn--danger btn--xs" (click)="deleteTarget = cat; confirmDelete = true">🗑</button>
+                  <button class="btn btn--ghost btn--xs" (click)="openEdit(cat); $event.stopPropagation()">✏️</button>
+                  <button class="btn btn--danger btn--xs" (click)="deleteTarget = cat; confirmDelete = true; $event.stopPropagation()">🗑</button>
                 </div>
               }
             </div>
@@ -120,6 +122,8 @@ import { CategoryResponse } from '../../core/models';
     @keyframes popIn { from { transform: scale(.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .modal__title { font-size: 1.25rem; font-weight: 800; color: var(--text); }
     .modal__actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: .5rem; }
+    .cat-card--clickable { cursor: pointer; }
+    .cat-card__browse { font-size: .8125rem; font-weight: 600; color: var(--accent); margin-top: .25rem; }
     .empty-full { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
     .empty-icon { font-size: 3rem; }
   `]
@@ -128,6 +132,7 @@ export class CategoriesComponent implements OnInit {
   auth = inject(AuthStore);
   private api = inject(CategoryApiService);
   private toast = inject(ToastService);
+  private router = inject(Router);
 
   loading = signal(true);
   saving = signal(false);
@@ -186,6 +191,10 @@ export class CategoriesComponent implements OnInit {
     this.api.delete(this.deleteTarget.id).subscribe({
       next: () => { this.toast.success('Category deactivated.'); this.confirmDelete = false; this.load(); }
     });
+  }
+
+  browseCategory(cat: CategoryResponse) {
+    this.router.navigate(['/events'], { queryParams: { categoryId: cat.id } });
   }
 
   getCatIcon(name: string): string {

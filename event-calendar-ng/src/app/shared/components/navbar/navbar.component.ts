@@ -50,6 +50,7 @@ import { ToastService } from '../toast/toast.service';
             }
           </div>
         } @else {
+          <a routerLink="/categories" routerLinkActive="active" class="nav-link" (click)="menuOpen.set(false)">Categories</a>
           <a routerLink="/auth/login"    class="btn btn--sm btn--ghost">Sign In</a>
           <a routerLink="/auth/register" class="btn btn--sm">Get Started</a>
         }
