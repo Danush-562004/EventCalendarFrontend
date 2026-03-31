@@ -31,8 +31,8 @@ import { CategoryResponse } from '../../core/models';
         <div class="cat-grid">
           @for (cat of categories(); track cat.id) {
             <div class="cat-card cat-card--clickable" (click)="browseCategory(cat)">
-              <div class="cat-card__banner" [style.background]="getCatBg(cat.name, cat.colorCode)">
-                <span class="cat-card__icon">{{ getCatIcon(cat.name) }}</span>
+              <div class="cat-card__banner">
+                <img [src]="getCatImg(cat.name, cat.id)" [alt]="cat.name" class="cat-card__photo" loading="lazy">
               </div>
               <div class="cat-card__body">
                 <div class="cat-card__top">
@@ -105,8 +105,9 @@ import { CategoryResponse } from '../../core/models';
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
     .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
     .cat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,.12); }
-    .cat-card__banner { height: 100px; display: flex; align-items: center; justify-content: center; }
-    .cat-card__icon { font-size: 2.75rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,.2)); }
+    .cat-card__banner { height: 130px; position: relative; overflow: hidden; }
+    .cat-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+    .cat-card:hover .cat-card__photo { transform: scale(1.07); }
     .cat-card__body { flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
     .cat-card__top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
     .cat-card__name { font-size: .9375rem; font-weight: 700; color: var(--text); }
@@ -197,6 +198,44 @@ export class CategoriesComponent implements OnInit {
     this.router.navigate(['/events'], { queryParams: { categoryId: cat.id } });
   }
 
+  getCatImg(name: string, id: number): string {
+    const n = name.toLowerCase();
+    if (n.includes('music') || n.includes('concert'))
+      return 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=480&q=80';
+    if (n.includes('sport') || n.includes('game'))
+      return 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=480&q=80';
+    if (n.includes('tech') || n.includes('code') || n.includes('dev'))
+      return 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=480&q=80';
+    if (n.includes('art') || n.includes('paint') || n.includes('gallery'))
+      return 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=480&q=80';
+    if (n.includes('food') || n.includes('cook') || n.includes('culinary'))
+      return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=480&q=80';
+    if (n.includes('business') || n.includes('conference') || n.includes('summit'))
+      return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=480&q=80';
+    if (n.includes('health') || n.includes('wellness') || n.includes('yoga'))
+      return 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=480&q=80';
+    if (n.includes('education') || n.includes('workshop') || n.includes('seminar'))
+      return 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=480&q=80';
+    if (n.includes('film') || n.includes('movie') || n.includes('cinema'))
+      return 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=480&q=80';
+    if (n.includes('travel') || n.includes('tour'))
+      return 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=480&q=80';
+    if (n.includes('fashion') || n.includes('style'))
+      return 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=480&q=80';
+    if (n.includes('charity') || n.includes('fundrais'))
+      return 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=480&q=80';
+    // Fallback pool — colorful natural scenery, cycled by id
+    const fallbacks = [
+      'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=480&q=80', // green mountains
+      'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=480&q=80', // sunset hills
+      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=480&q=80', // forest light
+      'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=480&q=80', // waterfall
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=480&q=80', // mountain lake
+      'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=480&q=80', // aurora
+    ];
+    return fallbacks[id % fallbacks.length];
+  }
+
   getCatIcon(name: string): string {
     const n = name.toLowerCase();
     if (n.includes('music') || n.includes('concert')) return '🎵';
@@ -212,20 +251,5 @@ export class CategoriesComponent implements OnInit {
     if (n.includes('fashion') || n.includes('style')) return '👗';
     if (n.includes('charity') || n.includes('fundrais')) return '❤️';
     return '🎭';
-  }
-
-  getCatBg(name: string, color: string): string {
-    const n = name.toLowerCase();
-    if (n.includes('music') || n.includes('concert')) return 'linear-gradient(135deg,#1a1a2e,#16213e)';
-    if (n.includes('sport') || n.includes('game'))    return 'linear-gradient(135deg,#134e5e,#71b280)';
-    if (n.includes('tech')  || n.includes('code') || n.includes('dev')) return 'linear-gradient(135deg,#0f0c29,#302b63)';
-    if (n.includes('art')   || n.includes('paint') || n.includes('gallery')) return 'linear-gradient(135deg,#f093fb,#f5576c)';
-    if (n.includes('food')  || n.includes('cook')  || n.includes('culinary')) return 'linear-gradient(135deg,#f7971e,#ffd200)';
-    if (n.includes('business') || n.includes('conference') || n.includes('summit')) return 'linear-gradient(135deg,#1c3c5a,#2d6a9f)';
-    if (n.includes('health') || n.includes('wellness') || n.includes('yoga')) return 'linear-gradient(135deg,#11998e,#38ef7d)';
-    if (n.includes('education') || n.includes('workshop') || n.includes('seminar')) return 'linear-gradient(135deg,#4776e6,#8e54e9)';
-    if (n.includes('film')  || n.includes('movie') || n.includes('cinema')) return 'linear-gradient(135deg,#232526,#414345)';
-    if (n.includes('travel') || n.includes('tour')) return 'linear-gradient(135deg,#2980b9,#6dd5fa)';
-    return `linear-gradient(135deg,${color}cc,${color}44)`;
   }
 }
