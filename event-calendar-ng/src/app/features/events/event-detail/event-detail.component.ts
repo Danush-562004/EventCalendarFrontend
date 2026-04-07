@@ -157,7 +157,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
                     <span class="price-summary__value">₹{{ (event()!.price * ticketQty) | number }}</span>
                   </div>
                 }
-                <button class="btn" [disabled]="bookingTicket() || (event()!.maxAttendees > 0 && event()!.availableSeats === 0)" (click)="bookTicket()">
+                <button class="btn" [disabled]="bookingTicket() || (event()!.maxAttendees > 0 && event()!.availableSeats === 0)" (click)="openPolicyModal()">
                   @if (bookingTicket()) { <span class="btn-spinner"></span> }
                   {{ event()!.maxAttendees > 0 && event()!.availableSeats === 0 ? 'Sold Out' : 'Book Ticket' }}
                 </button>
@@ -233,6 +233,62 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
         (cancel)="confirmDelete = false"
       />
     </div>
+
+    <!-- Refund Policy Agreement Modal -->
+    @if (showPolicyModal()) {
+      <div class="modal-overlay" (click)="showPolicyModal.set(false)">
+        <div class="policy-modal" (click)="$event.stopPropagation()">
+          <h3 class="policy-modal__title">📋 Booking & Refund Policy</h3>
+          <div class="policy-body">
+            <p class="policy-intro">Please read and agree to the following refund policy before booking your ticket.</p>
+
+            <div class="policy-section">
+              <div class="policy-rule policy-rule--full">
+                <span class="policy-rule__icon">✅</span>
+                <div>
+                  <strong>100% Refund</strong>
+                  <p>If the event is cancelled by the organiser more than 2 days (48 hours) before the event start time, you will receive a full 100% refund of your payment.</p>
+                </div>
+              </div>
+              <div class="policy-rule policy-rule--half">
+                <span class="policy-rule__icon">⚠️</span>
+                <div>
+                  <strong>50% Refund</strong>
+                  <p>If the event is cancelled within 2 days (48 hours) or less before the event start time, you will receive a 50% refund of your payment.</p>
+                </div>
+              </div>
+              <div class="policy-rule policy-rule--none">
+                <span class="policy-rule__icon">❌</span>
+                <div>
+                  <strong>No Refund</strong>
+                  <p>Tickets cancelled by the user are non-refundable. Refunds are only issued when the organiser cancels the event.</p>
+                </div>
+              </div>
+              <div class="policy-rule policy-rule--info">
+                <span class="policy-rule__icon">🔔</span>
+                <div>
+                  <strong>Refund Notifications</strong>
+                  <p>You will be notified via the in-app notification bell when a refund is issued. Refunds are processed automatically.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <label class="policy-checkbox">
+            <input type="checkbox" [(ngModel)]="policyAccepted">
+            <span>I have read and agree to the refund policy above.</span>
+          </label>
+
+          <div class="policy-modal__actions">
+            <button class="btn btn--ghost" (click)="showPolicyModal.set(false)">Cancel</button>
+            <button class="btn" [disabled]="!policyAccepted || bookingTicket()" (click)="bookTicket()">
+              @if (bookingTicket()) { <span class="btn-spinner"></span> }
+              Confirm Booking
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     .event-detail__banner { height: 280px; border-radius: 16px; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
@@ -279,6 +335,25 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .mono { font-family: 'JetBrains Mono', monospace; font-size: .8125rem; }
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
     .past-event-banner { background: rgba(255,59,48,.08); border: 1px solid rgba(255,59,48,.2); border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; color: #c0392b; margin-bottom: 1rem; font-weight: 500; }
+    /* Policy modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 300; backdrop-filter: blur(6px); padding: 1rem; }
+    .policy-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(560px, 100%); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; box-shadow: 0 20px 60px rgba(0,0,0,.25); animation: popIn .2s ease; }
+    @keyframes popIn { from { transform: scale(.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .policy-modal__title { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+    .policy-intro { font-size: .875rem; color: var(--muted); }
+    .policy-body { display: flex; flex-direction: column; gap: .75rem; }
+    .policy-section { display: flex; flex-direction: column; gap: .625rem; }
+    .policy-rule { display: flex; gap: .875rem; padding: .875rem 1rem; border-radius: 12px; font-size: .875rem; }
+    .policy-rule p { margin: .25rem 0 0; color: var(--muted); line-height: 1.5; }
+    .policy-rule strong { color: var(--text); font-size: .9rem; }
+    .policy-rule__icon { font-size: 1.25rem; flex-shrink: 0; margin-top: .1rem; }
+    .policy-rule--full { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); }
+    .policy-rule--half { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); }
+    .policy-rule--none { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); }
+    .policy-rule--info { background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.2); }
+    .policy-checkbox { display: flex; align-items: flex-start; gap: .625rem; cursor: pointer; font-size: .875rem; color: var(--text); padding: .875rem 1rem; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; }
+    .policy-checkbox input[type=checkbox] { width: 16px; height: 16px; flex-shrink: 0; margin-top: .1rem; accent-color: var(--accent); cursor: pointer; }
+    .policy-modal__actions { display: flex; justify-content: flex-end; gap: .75rem; }
   `]
 })
 export class EventDetailComponent implements OnInit {
@@ -296,6 +371,9 @@ export class EventDetailComponent implements OnInit {
   bookingTicket = signal(false);
   addingReminder = signal(false);
   confirmDelete = false;
+
+  showPolicyModal = signal(false);
+  policyAccepted = false;
 
   ticketQty = 1;
   seatNumber = '';
@@ -332,6 +410,11 @@ export class EventDetailComponent implements OnInit {
     });
   }
 
+  openPolicyModal() {
+    this.policyAccepted = false;
+    this.showPolicyModal.set(true);
+  }
+
   bookTicket() {
     const ev = this.event();
     if (!ev) return;
@@ -349,6 +432,8 @@ export class EventDetailComponent implements OnInit {
         const totalPrice = ev.price > 0 ? ` · Total: ₹${(ev.price * this.ticketQty).toLocaleString()}` : '';
         this.toast.success(`Ticket booked! #${t.ticketNumber}${totalPrice}`);
         this.bookingTicket.set(false);
+        this.showPolicyModal.set(false);
+        this.policyAccepted = false;
         this.event.update(e => e ? {
           ...e,
           ticketCount: e.ticketCount + 1,

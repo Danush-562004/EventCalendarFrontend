@@ -1,8 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthStore } from '../../../core/services/auth.store';
 import { ToastService } from '../toast/toast.service';
+import { NotificationApiService } from '../../../core/services/api.service';
+import { NotificationResponse } from '../../../core/models';
 
 @Component({
   selector: 'app-navbar',
@@ -32,6 +34,37 @@ import { ToastService } from '../toast/toast.service';
           @if (auth.isAdmin()) {
             <a routerLink="/admin" routerLinkActive="active" class="nav-link nav-link--admin" (click)="menuOpen.set(false)">Admin</a>
           }
+
+          <!-- Notification Bell -->
+          <div class="notif-wrap" (click)="$event.stopPropagation()">
+            <button class="notif-btn" (click)="toggleNotifPanel()" aria-label="Notifications">
+              🔔
+              @if (unreadCount() > 0) {
+                <span class="notif-badge">{{ unreadCount() > 9 ? '9+' : unreadCount() }}</span>
+              }
+            </button>
+            @if (notifOpen()) {
+              <div class="notif-panel">
+                <div class="notif-panel__header">
+                  <span>Notifications</span>
+                  @if (unreadCount() > 0) {
+                    <button class="notif-mark-read" (click)="markAllRead()">Mark all read</button>
+                  }
+                </div>
+                @if (notifications().length === 0) {
+                  <div class="notif-empty">No notifications</div>
+                }
+                @for (n of notifications(); track n.id) {
+                  <div class="notif-item" [class.notif-item--unread]="!n.isRead">
+                    <div class="notif-item__title">{{ n.title }}</div>
+                    <div class="notif-item__msg">{{ n.message }}</div>
+                    <div class="notif-item__time">{{ n.createdAt | date:'MMM d, h:mm a' }}</div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
           <div class="navbar__user">
             <button class="navbar__avatar" (click)="dropOpen.set(!dropOpen())" [attr.aria-expanded]="dropOpen()">
               {{ initials() }}
@@ -113,6 +146,48 @@ import { ToastService } from '../toast/toast.service';
     .dropdown__item--danger:hover { background: rgba(255,59,48,.1); color: #ff3b30; }
     .navbar__hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; margin-left: auto; }
     .navbar__hamburger span { display: block; width: 22px; height: 2px; background: #1d1d1f; border-radius: 2px; }
+    /* Notification bell */
+    .notif-wrap { position: relative; margin-left: .25rem; }
+    .notif-btn {
+      position: relative; background: none; border: none; cursor: pointer;
+      font-size: 1.125rem; padding: .25rem .375rem; border-radius: 8px;
+      transition: background .15s; line-height: 1;
+    }
+    .notif-btn:hover { background: rgba(0,0,0,.06); }
+    .notif-badge {
+      position: absolute; top: -2px; right: -4px;
+      background: #ff3b30; color: #fff; font-size: .625rem; font-weight: 700;
+      border-radius: 10px; padding: 1px 4px; min-width: 16px; text-align: center;
+      line-height: 1.4;
+    }
+    .notif-panel {
+      position: absolute; top: calc(100% + .5rem); right: 0;
+      background: rgba(255,255,255,.97); border: 1px solid rgba(0,0,0,.1);
+      border-radius: 14px; width: 320px; max-height: 400px; overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,.14); z-index: 200;
+      animation: popIn .15s ease;
+    }
+    .notif-panel__header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .75rem 1rem; border-bottom: 1px solid rgba(0,0,0,.07);
+      font-weight: 600; font-size: .875rem; color: #1d1d1f; position: sticky; top: 0;
+      background: rgba(255,255,255,.97);
+    }
+    .notif-mark-read {
+      background: none; border: none; cursor: pointer; font-size: .75rem;
+      color: #0071e3; font-weight: 500;
+    }
+    .notif-mark-read:hover { text-decoration: underline; }
+    .notif-empty { padding: 1.5rem 1rem; text-align: center; color: #86868b; font-size: .875rem; }
+    .notif-item {
+      padding: .75rem 1rem; border-bottom: 1px solid rgba(0,0,0,.05);
+      transition: background .12s;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item--unread { background: rgba(0,113,227,.04); }
+    .notif-item__title { font-weight: 600; font-size: .8125rem; color: #1d1d1f; margin-bottom: .2rem; }
+    .notif-item__msg { font-size: .8125rem; color: #3d3d3f; line-height: 1.4; }
+    .notif-item__time { font-size: .6875rem; color: #86868b; margin-top: .25rem; }
     @media (max-width: 768px) {
       .navbar { padding: 0 1rem; }
       .navbar__hamburger { display: flex; }
@@ -126,15 +201,79 @@ import { ToastService } from '../toast/toast.service';
       .navbar__links.open { display: flex; }
       .navbar__user { width: 100%; }
       .navbar__dropdown { position: static; box-shadow: none; margin-top: .5rem; }
+      .notif-panel { width: calc(100vw - 2rem); right: -1rem; }
     }
   `]
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit, OnDestroy {
   auth     = inject(AuthStore);
   router   = inject(Router);
   private toast = inject(ToastService);
+  private notifApi = inject(NotificationApiService);
+
   menuOpen = signal(false);
   dropOpen = signal(false);
+  notifOpen = signal(false);
+  notifications = signal<NotificationResponse[]>([]);
+  unreadCount = signal(0);
+
+  private pollInterval?: ReturnType<typeof setInterval>;
+  private clickListener?: () => void;
+
+  constructor() {
+    // React to login state changes — start/stop polling accordingly
+    effect(() => {
+      if (this.auth.isLoggedIn()) {
+        this.loadNotifications();
+        if (!this.pollInterval) {
+          this.pollInterval = setInterval(() => this.loadNotifications(), 30000);
+        }
+      } else {
+        this.notifications.set([]);
+        this.unreadCount.set(0);
+        if (this.pollInterval) {
+          clearInterval(this.pollInterval);
+          this.pollInterval = undefined;
+        }
+      }
+    });
+  }
+
+  ngOnInit() {
+    // Close panel on outside click
+    this.clickListener = () => this.notifOpen.set(false);
+    document.addEventListener('click', this.clickListener);
+  }
+
+  ngOnDestroy() {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+    if (this.clickListener) document.removeEventListener('click', this.clickListener);
+  }
+
+  loadNotifications() {
+    this.notifApi.getMine().subscribe({
+      next: list => {
+        this.notifications.set(list);
+        this.unreadCount.set(list.filter(n => !n.isRead).length);
+      },
+      error: () => {}
+    });
+  }
+
+  toggleNotifPanel() {
+    this.notifOpen.update(v => !v);
+    if (this.notifOpen()) this.loadNotifications();
+  }
+
+  markAllRead() {
+    this.notifApi.markAllRead().subscribe({
+      next: () => {
+        this.notifications.update(list => list.map(n => ({ ...n, isRead: true })));
+        this.unreadCount.set(0);
+      },
+      error: () => {}
+    });
+  }
 
   initials(): string {
     const u = this.auth.user();

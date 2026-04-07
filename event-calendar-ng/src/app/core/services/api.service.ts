@@ -11,7 +11,7 @@ import {
   TicketResponse, CreateTicketRequest, UpdateTicketRequest,
   PaymentResponse, CreatePaymentRequest, UpdatePaymentRequest,
   ReminderResponse, CreateReminderRequest, UpdateReminderRequest,
-  AuditLogResponse
+  AuditLogResponse, NotificationResponse
 } from '../models';
 
 // Uses Angular dev proxy (proxy.conf.json) → forwards to https://localhost:5001
@@ -276,5 +276,23 @@ export class AuditLogApiService {
     if (from)       params = params.set('from', from);
     if (to)         params = params.set('to', to);
     return unwrap(this.http.get<ApiResponse<PagedResponse<AuditLogResponse>>>(`${BASE}/auditlogs`, { params }));
+  }
+}
+
+// ─── Notifications ─────────────────────────────────────────────
+@Injectable({ providedIn: 'root' })
+export class NotificationApiService {
+  private http = inject(HttpClient);
+
+  getMine(): Observable<NotificationResponse[]> {
+    return unwrap(this.http.get<ApiResponse<NotificationResponse[]>>(`${BASE}/notifications`));
+  }
+
+  getUnreadCount(): Observable<number> {
+    return unwrap(this.http.get<ApiResponse<number>>(`${BASE}/notifications/unread-count`));
+  }
+
+  markAllRead(): Observable<object> {
+    return unwrap(this.http.post<ApiResponse<object>>(`${BASE}/notifications/mark-all-read`, {}));
   }
 }
