@@ -1,3 +1,7 @@
 node_modules/
 dist/
 .env
+
+# Angular + Vite build artifacts
+.angular/cache/
+*.tsbuildinfo

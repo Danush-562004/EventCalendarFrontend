@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { VenueApiService } from '../../core/services/api.service';
+import { VenueApiService, EventApiService } from '../../core/services/api.service';
 import { AuthStore } from '../../core/services/auth.store';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -62,8 +62,12 @@ import { VenueResponse } from '../../core/models';
                 <span class="venue-card__browse">View events →</span>
                 @if (auth.isAdmin()) {
                   <div class="venue-card__actions">
-                    <button class="btn btn--ghost btn--sm" (click)="openEdit(v); $event.stopPropagation()">✏️ Edit</button>
-                    <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true; $event.stopPropagation()">🗑 Delete</button>
+                    @if (hasActiveEvents(v.id)) {
+                      <span class="venue-active-notice">⚠️ There are active events in this venue</span>
+                    } @else {
+                      <button class="btn btn--ghost btn--sm" (click)="openEdit(v); $event.stopPropagation()">✏️ Edit</button>
+                      <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true; $event.stopPropagation()">🗑 Delete</button>
+                    }
                   </div>
                 }
               </div>
@@ -171,6 +175,7 @@ import { VenueResponse } from '../../core/models';
     .detail-label { font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
     .detail-val { font-size: .8125rem; font-weight: 600; color: var(--text); }
     .venue-card__actions { display: flex; gap: .5rem; padding-top: .625rem; border-top: 1px solid var(--border); margin-top: auto; }
+    .venue-active-notice { font-size: .75rem; font-weight: 600; color: #b8600a; background: rgba(255,149,0,.1); border: 1px solid rgba(255,149,0,.3); border-radius: 8px; padding: .375rem .625rem; width: 100%; text-align: center; }
     .venue-card__browse { font-size: .8125rem; font-weight: 600; color: var(--accent); margin-top: .25rem; display: block; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(440px, 90vw); display: flex; flex-direction: column; gap: 1rem; animation: popIn .2s ease; }
@@ -188,6 +193,7 @@ import { VenueResponse } from '../../core/models';
 export class VenuesComponent implements OnInit {
   auth = inject(AuthStore);
   private api = inject(VenueApiService);
+  private eventApi = inject(EventApiService);
   private toast = inject(ToastService);
   private router = inject(Router);
 
@@ -202,6 +208,7 @@ export class VenuesComponent implements OnInit {
   editTarget: VenueResponse | null = null;
   deleteTarget: VenueResponse | null = null;
   confirmDelete = false;
+  private activeVenueIds = new Set<number>();
 
   filteredVenues(): VenueResponse[] {
     const q = this.searchQuery.trim().toLowerCase();
@@ -224,9 +231,33 @@ export class VenuesComponent implements OnInit {
   load() {
     this.loading.set(true);
     this.api.getAll(this.page(), this.pageSize).subscribe({
-      next: r => { this.venues.set(r.items); this.totalCount.set(r.totalCount); this.loading.set(false); },
+      next: r => {
+        this.venues.set(r.items);
+        this.totalCount.set(r.totalCount);
+        this.loading.set(false);
+        this.loadActiveVenueIds();
+      },
       error: () => this.loading.set(false)
     });
+  }
+
+  private loadActiveVenueIds() {
+    const now = new Date();
+    // Fetch events that haven't ended yet (endDate = far future, startDate = past)
+    this.eventApi.search({ pageSize: 200 }).subscribe({
+      next: r => {
+        this.activeVenueIds.clear();
+        r.items.forEach(ev => {
+          if (ev.venue && new Date(ev.endDateTime) > now) {
+            this.activeVenueIds.add(ev.venue.id);
+          }
+        });
+      }
+    });
+  }
+
+  hasActiveEvents(venueId: number): boolean {
+    return this.activeVenueIds.has(venueId);
   }
 
   openCreate() {

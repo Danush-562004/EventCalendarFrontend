@@ -29,8 +29,12 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
             </div>
             <div class="event-detail__actions">
               @if (auth.isAdmin()) {
-                <a [routerLink]="['/events', event()!.id, 'edit']" class="btn btn--ghost btn--sm">✏️ Edit</a>
-                <button class="btn btn--danger btn--sm" (click)="confirmDelete = true">🗑 Delete</button>
+                @if (isEventStarted()) {
+                  <span class="event-started-notice">⚠️ Event has already started</span>
+                } @else {
+                  <a [routerLink]="['/events', event()!.id, 'edit']" class="btn btn--ghost btn--sm">✏️ Edit</a>
+                  <button class="btn btn--danger btn--sm" (click)="confirmDelete = true">🗑 Delete</button>
+                }
               }
             </div>
           </div>
@@ -98,8 +102,13 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
             }
           </div>
 
+          <!-- Event started banner -->
+          @if (isEventStarted() && !isEventPast()) {
+            <div class="started-event-banner">🚫 Event has already started, booking closed.</div>
+          }
+
           <!-- Sign in prompt for guests -->
-          @if (!auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
+          @if (!auth.isLoggedIn() && event()!.isActive && !isEventPast() && !isEventStarted()) {
             <div class="ticket-section">
               <div class="guest-cta">
                 <span class="guest-cta__text">Want to attend this event?</span>
@@ -109,7 +118,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           }
 
           <!-- Book Ticket Section (users only) -->
-          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
+          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast() && !isEventStarted()) {
             <div class="ticket-section">
               <h2 class="section-h2">Book a Ticket</h2>
 
@@ -166,7 +175,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           }
 
           <!-- Set Reminder Section (users only, not admin) -->
-          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast()) {
+          @if (!auth.isAdmin() && auth.isLoggedIn() && event()!.isActive && !isEventPast() && !isEventStarted()) {
             <div class="ticket-section">
               <h2 class="section-h2">Set a Reminder</h2>
               <div class="ticket-form">
@@ -279,6 +288,8 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .mono { font-family: 'JetBrains Mono', monospace; font-size: .8125rem; }
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
     .past-event-banner { background: rgba(255,59,48,.08); border: 1px solid rgba(255,59,48,.2); border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; color: #c0392b; margin-bottom: 1rem; font-weight: 500; }
+    .started-event-banner { background: rgba(255,149,0,.08); border: 1px solid rgba(255,149,0,.3); border-radius: 10px; padding: .75rem 1rem; font-size: .875rem; color: #b8600a; margin-bottom: 1rem; font-weight: 500; }
+    .event-started-notice { font-size: .8125rem; font-weight: 600; color: #b8600a; background: rgba(255,149,0,.1); border: 1px solid rgba(255,149,0,.3); border-radius: 8px; padding: .375rem .75rem; }
   `]
 })
 export class EventDetailComponent implements OnInit {
@@ -415,6 +426,12 @@ export class EventDetailComponent implements OnInit {
     const ev = this.event();
     if (!ev) return false;
     return new Date(ev.endDateTime) <= new Date();
+  }
+
+  isEventStarted(): boolean {
+    const ev = this.event();
+    if (!ev) return false;
+    return new Date(ev.startDateTime) <= new Date();
   }
 
   getBannerGradient(name?: string, color?: string): string { return ''; }
