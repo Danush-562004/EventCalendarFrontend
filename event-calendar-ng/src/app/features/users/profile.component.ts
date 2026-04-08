@@ -48,7 +48,8 @@ import { UserResponse } from '../../core/models';
               </div>
               <div class="form-field form-field--full">
                 <label class="form-label">Phone Number</label>
-                <input class="form-input" [(ngModel)]="f.phoneNumber" placeholder="+91…">
+                <input class="form-input" [(ngModel)]="f.phoneNumber" placeholder="9876543210">
+                @if (phoneError) { <span class="form-error">Required, min 10 digits, numbers only</span> }
               </div>
             </div>
             <div class="notification-prefs">
@@ -133,6 +134,7 @@ export class ProfileComponent implements OnInit {
 
   f = { firstName: '', lastName: '', phoneNumber: '', emailNotifications: true, pushNotifications: true };
   pw = { current: '', newPw: '', confirm: '' };
+  phoneError = false;
 
   ngOnInit() {
     const id = this.auth.currentUserId();
@@ -153,6 +155,12 @@ export class ProfileComponent implements OnInit {
   }
 
   saveProfile() {
+    this.phoneError = false;
+    if (!this.f.phoneNumber || !/^\d{10,}$/.test(this.f.phoneNumber)) {
+      this.phoneError = true;
+      this.toast.warning('Phone number is required, must be at least 10 digits and contain only numbers.');
+      return;
+    }
     this.savingProfile.set(true);
     const id = this.auth.currentUserId()!;
     this.userApi.update(id, {

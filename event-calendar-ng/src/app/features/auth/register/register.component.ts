@@ -41,7 +41,7 @@ import { ToastService } from '../../../shared/components/toast/toast.service';
             <label class="form-label">Username</label>
             <input class="form-input" formControlName="username" placeholder="johndoe" autocomplete="username">
             @if (f['username'].invalid && f['username'].touched) {
-              <span class="form-error">Required, min 3 characters</span>
+              <span class="form-error">Required, min 3 characters, no spaces</span>
             }
           </div>
 
@@ -55,8 +55,11 @@ import { ToastService } from '../../../shared/components/toast/toast.service';
           </div>
 
           <div class="form-field">
-            <label class="form-label">Phone <span class="optional">(optional)</span></label>
-            <input class="form-input" formControlName="phoneNumber" placeholder="+91 555 000 0000">
+            <label class="form-label">Phone</label>
+            <input class="form-input" formControlName="phoneNumber" placeholder="9876543210">
+            @if (f['phoneNumber'].invalid && f['phoneNumber'].touched) {
+              <span class="form-error">Required, min 10 digits, numbers only</span>
+            }
           </div>
 
           <div class="form-field">
@@ -98,9 +101,9 @@ export class RegisterComponent {
   form = this.fb.group({
     firstName:   ['', Validators.required],
     lastName:    ['', Validators.required],
-    username:    ['', [Validators.required, Validators.minLength(3)]],
+    username:    ['', [Validators.required, Validators.minLength(3), Validators.pattern(/^\S+$/)]],
     email:       ['', [Validators.required, Validators.email]],
-    phoneNumber: [''],
+    phoneNumber: ['', [Validators.required, Validators.pattern(/^\d{10,}$/)]],
     password:    ['', [Validators.required, Validators.minLength(6)]]
   });
 

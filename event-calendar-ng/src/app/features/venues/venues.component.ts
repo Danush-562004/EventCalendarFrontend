@@ -121,8 +121,9 @@ import { VenueResponse } from '../../core/models';
                 <input class="form-input" type="email" [(ngModel)]="f.contactEmail" placeholder="venue@example.com">
               </div>
               <div class="form-field">
-                <label class="form-label">Contact Phone</label>
-                <input class="form-input" [(ngModel)]="f.contactPhone" placeholder="+91 …">
+                <label class="form-label">Contact Phone *</label>
+                <input class="form-input" [(ngModel)]="f.contactPhone" placeholder="9876543210">
+                @if (phoneError) { <span class="form-error">Required, min 10 digits, numbers only</span> }
               </div>
               <div class="form-field form-field--full">
                 <label class="form-label">Description</label>
@@ -272,9 +273,17 @@ export class VenuesComponent implements OnInit {
     this.showForm.set(true);
   }
 
+  phoneError = false;
+
   save() {
+    this.phoneError = false;
     if (!this.f.name || !this.f.address || !this.f.city || !this.f.state || !this.f.country) {
       this.toast.warning('Name, address, city, state and country are required.'); return;
+    }
+    if (!this.f.contactPhone || !/^\d{10,}$/.test(this.f.contactPhone)) {
+      this.phoneError = true;
+      this.toast.warning('Contact phone is required, must be at least 10 digits and contain only numbers.');
+      return;
     }
     this.saving.set(true);
     const payload: any = { ...this.f, capacity: Number(this.f.capacity) };
