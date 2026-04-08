@@ -147,9 +147,15 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
         <label class="form-label">Transaction ID (auto-generated)</label>
         <input class="form-input form-input--mono" [(ngModel)]="payTxnId" readonly>
       </div>
+      <div class="refund-policy-wrap">
+        <label class="refund-policy-label">
+          <input type="checkbox" [(ngModel)]="refundAgreed">
+          <span>I understand that <strong>no refund</strong> will be issued for user-side cancellations.</span>
+        </label>
+      </div>
       <div class="modal__actions">
         <button class="btn btn--ghost" (click)="paymentTarget.set(null)">Cancel</button>
-        <button class="btn" [disabled]="paying()" (click)="processPayment()">
+        <button class="btn" [disabled]="paying() || !refundAgreed" (click)="processPayment()">
           @if (paying()) { <span class="btn-spinner"></span> Processing... }
           @else if (payAmount > 0) { Pay ₹{{ payAmount | number }} {{ payCurrency }} }
           @else { Confirm Free Ticket }
@@ -203,7 +209,10 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
     .empty-full { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; color: var(--muted); }
     .empty-icon { font-size: 3rem; }
     @media(max-width:600px) { .ticket-card { flex-direction: column; } .ticket-card__right { align-items: flex-start; } }
-    .payment-breakdown { background: var(--bg); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+    .refund-policy-wrap { padding: .75rem; background: rgba(239,68,68,.05); border: 1px solid rgba(239,68,68,.2); border-radius: 10px; }
+    .refund-policy-label { display: flex; align-items: flex-start; gap: .625rem; cursor: pointer; font-size: .8125rem; color: var(--muted); line-height: 1.5; }
+    .refund-policy-label input[type=checkbox] { margin-top: .15rem; accent-color: #ef4444; width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+    .refund-policy-label strong { color: #ef4444; }
     .breakdown-row { display: flex; justify-content: space-between; font-size: .875rem; color: var(--muted); }
     .breakdown-row--total { font-weight: 700; font-size: 1rem; color: var(--text); border-top: 1px solid var(--border); padding-top: .5rem; margin-top: .25rem; }
     .filter-bar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
@@ -265,6 +274,7 @@ export class TicketsComponent implements OnInit, OnDestroy {
   payMethod: PaymentMethod= 'CreditCard';
   payTxnId = '';
   payNotes = '';
+  refundAgreed = false;
 
   ngOnInit() {
     this.load();
@@ -315,6 +325,7 @@ export class TicketsComponent implements OnInit, OnDestroy {
     this.payNotes = '';
     this.payCurrency = 'INR';
     this.payMethod = 'CreditCard';
+    this.refundAgreed = false;
   }
 
   processPayment() {
@@ -403,7 +414,7 @@ export class TicketsComponent implements OnInit, OnDestroy {
   }
 
   paymentColor(s: string): string {
-    const m: Record<string, string> = { Pending: 'amber', Completed: 'green', Failed: 'red', Refunded: 'gray' };
+    const m: Record<string, string> = { Pending: 'amber', Completed: 'green', Failed: 'red', Refunded: 'purple' };
     return m[s] ?? 'gray';
   }
   hasCompletedPayment(tk: TicketResponse): boolean {

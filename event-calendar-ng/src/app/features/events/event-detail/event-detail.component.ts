@@ -232,6 +232,16 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
         (confirm)="deleteEvent()"
         (cancel)="confirmDelete = false"
       />
+
+      <app-confirm-dialog
+        [open]="confirmBooking"
+        title="Booking Confirmed 🎉"
+        message="Your ticket has been booked successfully! Go to My Tickets to complete your payment."
+        highlight="Pay within 5 minutes to confirm your tickets."
+        confirmLabel="Go to My Tickets"
+        (confirm)="goToTickets()"
+        (cancel)="confirmBooking = false"
+      />
     </div>
   `,
   styles: [`
@@ -299,6 +309,7 @@ export class EventDetailComponent implements OnInit {
   bookingTicket = signal(false);
   addingReminder = signal(false);
   confirmDelete = false;
+  confirmBooking = false;
 
   ticketQty = 1;
   seatNumber = '';
@@ -352,13 +363,7 @@ export class EventDetailComponent implements OnInit {
         const totalPrice = ev.price > 0 ? ` · Total: ₹${(ev.price * this.ticketQty).toLocaleString()}` : '';
         this.toast.success(`Ticket booked! #${t.ticketNumber}${totalPrice}`);
         this.bookingTicket.set(false);
-        this.event.update(e => e ? {
-          ...e,
-          ticketCount: e.ticketCount + 1,
-          availableSeats: Math.max(0, e.availableSeats - this.ticketQty)
-        } : e);
-        this.ticketQty = 1;
-        this.seatNumber = '';
+        this.confirmBooking = true;
       },
       error: (err) => {
         const msg = err?.error?.message || 'Failed to book ticket. Please try again.';
@@ -395,6 +400,11 @@ export class EventDetailComponent implements OnInit {
         this.addingReminder.set(false);
       }
     });
+  }
+
+  goToTickets() {
+    this.confirmBooking = false;
+    this.router.navigate(['/tickets']);
   }
 
   deleteEvent() {
