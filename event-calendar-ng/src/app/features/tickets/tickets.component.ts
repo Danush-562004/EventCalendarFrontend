@@ -29,10 +29,10 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
           <input class="search-input" [(ngModel)]="filterKeyword" placeholder="Search by event…" (input)="applyFilter()">
         </div>
         <select class="form-select filter-select" [(ngModel)]="filterStatus" (change)="applyFilter()">
-          <option value="">All Statuses</option>
-          <option value="Reserved">Reserved</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="Attended">Attended</option>
+          <option value="">All</option>
+          <option value="Completed">Completed</option>
+          <option value="Refunded">Refunded</option>
+          <option value="Pending">Pending</option>
         </select>
         <input class="form-input filter-price" type="number" [(ngModel)]="filterMinPrice" (input)="applyFilter()" placeholder="Min ₹" min="0">
         <input class="form-input filter-price" type="number" [(ngModel)]="filterMaxPrice" (input)="applyFilter()" placeholder="Max ₹" min="0">
@@ -50,7 +50,9 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
                 <div class="ticket-card__event">{{ tk.eventTitle }}</div>
                 <div class="ticket-card__meta">
                   <span class="badge badge--blue">{{ tk.type }}</span>
-                  <span class="badge" [class]="'badge--' + statusColor(tk.status)">{{ tk.status }}</span>
+                  <span class="badge" [class]="'badge--' + statusColor(hasRefundedPayment(tk) ? 'Refunded' : tk.status)">
+                    {{ hasRefundedPayment(tk) ? 'Refunded' : tk.status }}
+                  </span>
                   @if (tk.seatNumber) { <span class="badge badge--gray">Seat {{ tk.seatNumber }}</span> }
                 </div>
                 <div class="ticket-card__info">
@@ -237,7 +239,11 @@ export class TicketsComponent implements OnInit, OnDestroy {
   filteredTickets() {
     return this.tickets().filter(tk => {
       if (this.filterKeyword && !tk.eventTitle.toLowerCase().includes(this.filterKeyword.toLowerCase())) return false;
-      if (this.filterStatus && tk.status !== this.filterStatus) return false;
+      if (this.filterStatus) {
+        if (this.filterStatus === 'Refunded' && !tk.payments?.some(p => p.status === 'Refunded')) return false;
+        if (this.filterStatus === 'Completed' && !tk.payments?.some(p => p.status === 'Completed')) return false;
+        if (this.filterStatus === 'Pending' && !(!tk.payments?.some(p => p.status === 'Completed' || p.status === 'Refunded'))) return false;
+      }
       const total = tk.price * tk.quantity;
       if (this.filterMinPrice !== '' && total < +this.filterMinPrice) return false;
       if (this.filterMaxPrice !== '' && total > +this.filterMaxPrice) return false;
@@ -288,7 +294,7 @@ export class TicketsComponent implements OnInit, OnDestroy {
         const now = new Date();
         // Filter out cancelled tickets and tickets for past events
         const active = t.filter(tk =>
-          tk.status !== 'Cancelled'
+          tk.status !== 'Cancelled' || tk.payments?.some(p => p.status === 'Refunded')
         );
         this.tickets.set(active);
         this.loading.set(false);
@@ -391,6 +397,7 @@ export class TicketsComponent implements OnInit, OnDestroy {
   }
 
   statusColor(s: string): string {
+    if (s === 'Refunded') return 'purple';
     const m: Record<string, string> = { Reserved: 'blue', Confirmed: 'green', Cancelled: 'red', Attended: 'purple' };
     return m[s] ?? 'gray';
   }
@@ -401,6 +408,10 @@ export class TicketsComponent implements OnInit, OnDestroy {
   }
   hasCompletedPayment(tk: TicketResponse): boolean {
     return tk.payments?.some(p => p.status === 'Completed') ?? false;
+  }
+
+  hasRefundedPayment(tk: TicketResponse): boolean {
+    return tk.payments?.some(p => p.status === 'Refunded') ?? false;
   }
 
   hasActivePayment(tk: TicketResponse): boolean {

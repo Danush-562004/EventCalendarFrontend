@@ -99,10 +99,11 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
               </div>
               <div class="event-card__footer">
                 <span class="event-card__price">{{ ev.price > 0 ? '₹' + (ev.price | number) : 'Free' }}</span>
-                <span class="event-card__seats">
-                  @if (ev.maxAttendees > 0) { 🎟 {{ ev.availableSeats }} left }
-                  @else { 🎫 {{ ev.ticketCount }} booked }
-                </span>
+                @if (ev.maxAttendees > 0) {
+                  <span class="event-card__seats" [class.event-card__seats--low]="ev.availableSeats <= 5 && ev.availableSeats > 0" [class.event-card__seats--full]="ev.availableSeats === 0">
+                    {{ ev.availableSeats === 0 ? '🔴 Sold Out' : '🎟 ' + ev.availableSeats + ' left' }}
+                  </span>
+                }
               </div>
             </a>
           } @empty {
@@ -170,23 +171,25 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
     .events-wrap { transition: opacity .2s; }
     .events-wrap--loading { opacity: .45; pointer-events: none; }
     .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
-    .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; border-top: 3px solid transparent; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; border-top: 3px solid transparent; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; height: 380px; }
     .event-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
-    .event-card__img { height: 160px; position: relative; overflow: hidden; }
+    .event-card__img { height: 160px; flex-shrink: 0; position: relative; overflow: hidden; }
     .event-card__photo { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
     .event-card:hover .event-card__photo { transform: scale(1.06); }
     .event-card__img-icon { position: absolute; bottom: .5rem; right: .75rem; font-size: 1.5rem; z-index: 2; filter: drop-shadow(0 1px 4px rgba(0,0,0,.5)); }
     .event-card__img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.45)); z-index: 1; }
-    .event-card__top { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1rem .5rem; }
+    .event-card__top { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1rem .5rem; flex-shrink: 0; }
     .event-card__cat { font-size: .75rem; font-weight: 600; padding: .25rem .625rem; border-radius: 6px; }
-    .event-card__body { flex: 1; padding: .5rem 1rem .875rem; }
-    .event-card__title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .375rem; line-height: 1.3; }
-    .event-card__desc { font-size: .8125rem; color: var(--muted); margin-bottom: .75rem; line-height: 1.5; }
-    .event-card__meta { display: flex; gap: 1rem; font-size: .8125rem; color: var(--muted); margin-bottom: .375rem; flex-wrap: wrap; }
-    .event-card__venue { font-size: .8125rem; color: var(--muted); }
-    .event-card__footer { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; border-top: 1px solid var(--border); }
+    .event-card__body { flex: 1; padding: .5rem 1rem .875rem; display: flex; flex-direction: column; overflow: hidden; }
+    .event-card__title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .375rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .event-card__desc { font-size: .8125rem; color: var(--muted); margin-bottom: .5rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .event-card__meta { display: flex; gap: 1rem; font-size: .8125rem; color: var(--muted); flex-wrap: wrap; margin-top: auto; }
+    .event-card__venue { font-size: .8125rem; color: var(--muted); margin-top: .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .event-card__footer { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; border-top: 1px solid var(--border); flex-shrink: 0; }
     .event-card__price { font-size: .875rem; font-weight: 700; color: var(--accent); }
-    .event-card__seats { font-size: .8125rem; font-weight: 600; color: var(--muted); }
+    .event-card__seats { font-size: .8125rem; font-weight: 600; color: #10b981; }
+    .event-card__seats--low { color: #f59e0b; }
+    .event-card__seats--full { color: #ef4444; }
     .empty-full { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 3rem; color: var(--muted); text-align: center; }
     .empty-icon { font-size: 3rem; }
     .empty-title { font-size: 1.125rem; font-weight: 700; color: var(--text); }

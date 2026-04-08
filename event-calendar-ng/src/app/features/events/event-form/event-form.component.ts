@@ -51,13 +51,16 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
                   }
                 </div>
                 <div class="form-field">
-                  <label class="form-label">Venue</label>
+                  <label class="form-label">Venue *</label>
                   <select class="form-select" formControlName="venueId" (change)="onVenueChange()">
-                    <option value="">No venue</option>
+                    <option value="">Select venue…</option>
                     @for (v of venues(); track v.id) {
                       <option [value]="v.id">{{ v.name }} – {{ v.city }} (cap: {{ v.capacity | number }})</option>
                     }
                   </select>
+                  @if (f['venueId'].invalid && f['venueId'].touched) {
+                    <span class="form-error">Venue is required</span>
+                  }
                 </div>
                 <div class="form-field">
                   <label class="form-label">Location (custom)</label>
@@ -65,23 +68,26 @@ import { CategoryResponse, VenueResponse } from '../../../core/models';
                 </div>
                 <div class="form-field">
                   <label class="form-label">
-                    Max Attendees
+                    Max Attendees *
                     @if (selectedVenueCapacity()) {
                       <span class="capacity-hint"> — venue cap: {{ selectedVenueCapacity() | number }}</span>
                     }
                   </label>
-                  <input class="form-input" type="number" formControlName="maxAttendees" min="0"
+                  <input class="form-input" type="number" formControlName="maxAttendees" min="1"
                     [max]="selectedVenueCapacity() || 999999">
+                  @if (f['maxAttendees'].invalid && f['maxAttendees'].touched) {
+                    <span class="form-error">Max attendees is required (min 1)</span>
+                  }
                   @if (selectedVenueCapacity() && (f['maxAttendees'].value ?? 0) > selectedVenueCapacity()!) {
                     <span class="form-error">Cannot exceed venue capacity of {{ selectedVenueCapacity() | number }}</span>
                   }
                 </div>
                 <div class="form-field">
-                    <label class="form-label">Ticket Price <span class="optional">(0 = Free)</span></label>
-                    <input class="form-input" type="number" formControlName="price" min="0" placeholder="0">
-                     @if (f['price'].invalid && f['price'].touched) {
-                        <span class="form-error">Price must be 0 or more</span>
-                      }
+                  <label class="form-label">Ticket Price *</label>
+                  <input class="form-input" type="number" formControlName="price" min="1" placeholder="Enter price">
+                  @if (f['price'].invalid && f['price'].touched) {
+                    <span class="form-error">Price is required (min 1)</span>
+                  }
                 </div>
               </div>
             </div>
@@ -189,10 +195,10 @@ export class EventFormComponent implements OnInit {
     location: [''],
     reminderEnabled: [false],
     reminderMinutesBefore: [null as number | null],
-    maxAttendees: [0],
+    maxAttendees: [0, [Validators.required, Validators.min(1)]],
     categoryId: ['', Validators.required],
-    venueId: [null as number | null],
-    price: [0, [Validators.required, Validators.min(0)]]
+    venueId: [null as number | null, Validators.required],
+    price: [0, [Validators.required, Validators.min(1)]]
   });
 
   get f() { return this.form.controls; }
@@ -281,7 +287,7 @@ export class EventFormComponent implements OnInit {
       reminderMinutesBefore: v.reminderEnabled ? v.reminderMinutesBefore : undefined,
       maxAttendees: v.maxAttendees ?? 0,
       categoryId: Number(v.categoryId),
-      venueId: v.venueId ? Number(v.venueId) : undefined,
+      venueId: Number(v.venueId),
       price: Number(v.price) ?? 0
     };
 

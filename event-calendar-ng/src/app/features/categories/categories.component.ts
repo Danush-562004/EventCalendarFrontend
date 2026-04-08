@@ -40,7 +40,6 @@ import { CategoryResponse } from '../../core/models';
                   <span class="badge" [class]="cat.isActive ? 'badge--green' : 'badge--red'">{{ cat.isActive ? 'Active' : 'Inactive' }}</span>
                 </div>
                 @if (cat.description) { <p class="cat-card__desc">{{ cat.description }}</p> }
-                <div class="cat-card__color-strip" [style.background]="cat.colorCode"></div>
                 <span class="cat-card__browse">Browse events →</span>
               </div>
               @if (auth.isAdmin()) {
@@ -71,14 +70,6 @@ import { CategoryResponse } from '../../core/models';
             <div class="form-field">
               <label class="form-label">Description</label>
               <input class="form-input" [(ngModel)]="formDesc" placeholder="Short description…">
-            </div>
-            <div class="form-field">
-              <label class="form-label">Color Code</label>
-              <div class="color-row">
-                <input class="form-input color-input" [(ngModel)]="formColor" placeholder="#3498db">
-                <input type="color" [(ngModel)]="formColor" class="color-picker">
-                <div class="color-preview" [style.background]="formColor"></div>
-              </div>
             </div>
             <div class="modal__actions">
               <button class="btn btn--ghost" (click)="showForm.set(false)">Cancel</button>
@@ -112,12 +103,7 @@ import { CategoryResponse } from '../../core/models';
     .cat-card__top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
     .cat-card__name { font-size: .9375rem; font-weight: 700; color: var(--text); }
     .cat-card__desc { font-size: .8125rem; color: var(--muted); line-height: 1.5; }
-    .cat-card__color-strip { height: 4px; border-radius: 2px; margin-top: auto; }
     .cat-card__actions { display: flex; gap: .375rem; justify-content: flex-end; padding: .625rem 1rem; border-top: 1px solid var(--border); }
-    .color-row { display: flex; gap: .5rem; align-items: center; }
-    .color-input { flex: 1; }
-    .color-picker { width: 40px; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface2); }
-    .color-preview { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(440px, 90vw); display: flex; flex-direction: column; gap: 1rem; animation: popIn .2s ease; }
     @keyframes popIn { from { transform: scale(.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -145,7 +131,6 @@ export class CategoriesComponent implements OnInit {
 
   formName = '';
   formDesc = '';
-  formColor = '#3498db';
 
   ngOnInit() { this.load(); }
 
@@ -159,20 +144,20 @@ export class CategoriesComponent implements OnInit {
 
   openCreate() {
     this.editTarget = null;
-    this.formName = ''; this.formDesc = ''; this.formColor = '#3498db';
+    this.formName = ''; this.formDesc = '';
     this.showForm.set(true);
   }
 
   openEdit(cat: CategoryResponse) {
     this.editTarget = cat;
-    this.formName = cat.name; this.formDesc = cat.description || ''; this.formColor = cat.colorCode;
+    this.formName = cat.name; this.formDesc = cat.description || '';
     this.showForm.set(true);
   }
 
   save() {
     if (!this.formName.trim()) { this.toast.warning('Name is required'); return; }
     this.saving.set(true);
-    const payload = { name: this.formName, description: this.formDesc || undefined, colorCode: this.formColor };
+    const payload = { name: this.formName, description: this.formDesc || undefined, colorCode: '#3498db' };
     const call = this.editTarget
       ? this.api.update(this.editTarget.id, payload)
       : this.api.create(payload);

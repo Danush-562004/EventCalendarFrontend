@@ -3,11 +3,12 @@ import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthStore } from '../../../core/services/auth.store';
 import { ToastService } from '../toast/toast.service';
+import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, NotificationBellComponent],
   template: `
     <nav class="navbar">
       <a routerLink="/dashboard" class="navbar__brand">
@@ -31,6 +32,9 @@ import { ToastService } from '../toast/toast.service';
           }
           @if (auth.isAdmin()) {
             <a routerLink="/admin" routerLinkActive="active" class="nav-link nav-link--admin" (click)="menuOpen.set(false)">Admin</a>
+          }
+          @if (!auth.isAdmin()) {
+            <app-notification-bell />
           }
           <div class="navbar__user">
             <button class="navbar__avatar" (click)="dropOpen.set(!dropOpen())" [attr.aria-expanded]="dropOpen()">

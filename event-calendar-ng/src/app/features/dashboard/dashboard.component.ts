@@ -1,10 +1,10 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { EventApiService, TicketApiService, ReminderApiService, CategoryApiService } from '../../core/services/api.service';
+import { EventApiService, CategoryApiService } from '../../core/services/api.service';
 import { AuthStore } from '../../core/services/auth.store';
 import { LoadingComponent } from '../../shared/components/loading/loading.component';
-import { EventResponse, TicketResponse, ReminderResponse } from '../../core/models';
+import { EventResponse } from '../../core/models';
 
 @Component({
   selector: 'app-dashboard',
@@ -34,17 +34,10 @@ import { EventResponse, TicketResponse, ReminderResponse } from '../../core/mode
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon stat-icon--green">🎫</div>
+            <div class="stat-icon stat-icon--green">📅</div>
             <div class="stat-body">
-              <span class="stat-value">{{ myTickets().length }}</span>
-              <span class="stat-label">My Tickets</span>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon stat-icon--amber">🔔</div>
-            <div class="stat-body">
-              <span class="stat-value">{{ pendingReminders() }}</span>
-              <span class="stat-label">Pending Reminders</span>
+              <span class="stat-value">{{ upcomingEvents().length }}</span>
+              <span class="stat-label">Upcoming Events</span>
             </div>
           </div>
           <div class="stat-card">
@@ -57,7 +50,7 @@ import { EventResponse, TicketResponse, ReminderResponse } from '../../core/mode
         </div>
 
         <div class="dash-grid">
-          <section class="dash-section">
+          <section class="dash-section dash-section--full">
             <div class="section-header">
               <h2 class="section-title">Upcoming Events</h2>
               <a routerLink="/events" class="section-link">View all →</a>
@@ -70,56 +63,10 @@ import { EventResponse, TicketResponse, ReminderResponse } from '../../core/mode
                     <span class="event-row__title">{{ ev.title }}</span>
                     <span class="event-row__meta">{{ ev.startDateTime | date:'MMM d, y · h:mm a' }}</span>
                   </div>
-                  <div class="event-row__badge" [class]="'badge badge--' + (ev.isActive ? 'green' : 'red')">
-                    {{ ev.isActive ? 'Active' : 'Inactive' }}
-                  </div>
+                  <div class="badge badge--green">Active</div>
                 </a>
               } @empty {
                 <p class="empty-state">No upcoming events found.</p>
-              }
-            </div>
-          </section>
-
-          <section class="dash-section">
-            <div class="section-header">
-              <h2 class="section-title">Recent Tickets</h2>
-              <a routerLink="/tickets" class="section-link">View all →</a>
-            </div>
-            <div class="event-list">
-              @for (tk of recentTickets(); track tk.id) {
-                <a [routerLink]="['/tickets']" class="event-row">
-                  <div class="event-row__icon">🎫</div>
-                  <div class="event-row__body">
-                    <span class="event-row__title">{{ tk.eventTitle }}</span>
-                    <span class="event-row__meta">{{ tk.ticketNumber }} · {{ tk.type }}</span>
-                  </div>
-                  <div [class]="'badge badge--' + statusColor(tk.status)">{{ tk.status }}</div>
-                </a>
-              } @empty {
-                <p class="empty-state">No tickets yet. <a routerLink="/events">Browse events →</a></p>
-              }
-            </div>
-          </section>
-
-          <section class="dash-section">
-            <div class="section-header">
-              <h2 class="section-title">Upcoming Reminders</h2>
-              <a routerLink="/reminders" class="section-link">View all →</a>
-            </div>
-            <div class="event-list">
-              @for (rm of reminders().slice(0, 5); track rm.id) {
-                <div class="event-row">
-                  <div class="event-row__icon">🔔</div>
-                  <div class="event-row__body">
-                    <span class="event-row__title">{{ rm.title }}</span>
-                    <span class="event-row__meta">{{ rm.eventTitle }} · {{ rm.reminderDateTime | date:'MMM d · h:mm a' }}</span>
-                  </div>
-                  <div [class]="rm.isSent ? 'badge badge--gray' : 'badge badge--amber'">
-                    {{ rm.isSent ? 'Sent' : 'Pending' }}
-                  </div>
-                </div>
-              } @empty {
-                <p class="empty-state">No reminders set.</p>
               }
             </div>
           </section>
@@ -128,9 +75,8 @@ import { EventResponse, TicketResponse, ReminderResponse } from '../../core/mode
     </div>
   `,
   styles: [`
-    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-    .dash-section:last-child { grid-column: 1 / -1; }
-    @media(max-width:900px) { .dash-grid { grid-template-columns: 1fr; } .dash-section:last-child { grid-column: auto; } }
+    .dash-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+    .dash-section--full { grid-column: 1 / -1; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; transition: transform .2s, box-shadow .2s; }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.2); }
@@ -163,47 +109,32 @@ import { EventResponse, TicketResponse, ReminderResponse } from '../../core/mode
 export class DashboardComponent implements OnInit {
   auth = inject(AuthStore);
   private eventApi    = inject(EventApiService);
-  private ticketApi   = inject(TicketApiService);
-  private reminderApi = inject(ReminderApiService);
   private categoryApi = inject(CategoryApiService);
 
   loading         = signal(true);
   events          = signal<EventResponse[]>([]);
-  myTickets       = signal<TicketResponse[]>([]);
-  reminders       = signal<ReminderResponse[]>([]);
   totalEvents     = signal(0);
   totalCategories = signal(0);
 
-  upcomingEvents  = computed(() => this.events().filter(e => e.isActive).slice(0, 5));
-  recentTickets   = computed(() => this.myTickets().slice(0, 5));
-  pendingReminders = computed(() => this.reminders().filter(r => !r.isSent).length);
+  upcomingEvents   = computed(() => {
+    const now = new Date();
+    return this.events()
+      .filter(e => e.isActive && new Date(e.startDateTime) > now)
+      .slice(0, 5);
+  });
+  pendingReminders = computed(() => 0);
 
   ngOnInit() {
     let done = 0;
-    const check = () => { if (++done === 4) this.loading.set(false); };
+    const check = () => { if (++done === 2) this.loading.set(false); };
 
-    this.eventApi.getAll(1, 20).subscribe({
+    this.eventApi.getAll(1, 100).subscribe({
       next: r => { this.events.set(r.items); this.totalEvents.set(r.totalCount); check(); },
-      error: () => check()
-    });
-    this.ticketApi.getMyTickets().subscribe({
-      next: t => { this.myTickets.set(t); check(); },
-      error: () => check()
-    });
-    this.reminderApi.getMine(1, 20).subscribe({
-      next: r => { this.reminders.set(r.items); check(); },
       error: () => check()
     });
     this.categoryApi.getAll(1, 100).subscribe({
       next: r => { this.totalCategories.set(r.totalCount); check(); },
       error: () => check()
     });
-  }
-
-  statusColor(status: string): string {
-    const map: Record<string, string> = {
-      Reserved: 'blue', Confirmed: 'green', Cancelled: 'red', Attended: 'purple'
-    };
-    return map[status] ?? 'gray';
   }
 }

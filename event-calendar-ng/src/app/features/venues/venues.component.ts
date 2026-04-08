@@ -65,8 +65,10 @@ import { VenueResponse } from '../../core/models';
                     @if (hasActiveEvents(v.id)) {
                       <span class="venue-active-notice">⚠️ There are active events in this venue</span>
                     } @else {
-                      <button class="btn btn--ghost btn--sm" (click)="openEdit(v); $event.stopPropagation()">✏️ Edit</button>
-                      <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true; $event.stopPropagation()">🗑 Delete</button>
+                      <div class="venue-card__action-icons">
+                        <button class="btn btn--ghost btn--sm" (click)="openEdit(v); $event.stopPropagation()">✏️</button>
+                        <button class="btn btn--danger btn--sm" (click)="deleteTarget = v; confirmDelete = true; $event.stopPropagation()">🗑</button>
+                      </div>
                     }
                   </div>
                 }
@@ -176,6 +178,7 @@ import { VenueResponse } from '../../core/models';
     .detail-label { font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
     .detail-val { font-size: .8125rem; font-weight: 600; color: var(--text); }
     .venue-card__actions { display: flex; gap: .5rem; padding-top: .625rem; border-top: 1px solid var(--border); margin-top: auto; }
+    .venue-card__action-icons { display: flex; gap: .5rem; margin-left: auto; }
     .venue-active-notice { font-size: .75rem; font-weight: 600; color: #b8600a; background: rgba(255,149,0,.1); border: 1px solid rgba(255,149,0,.3); border-radius: 8px; padding: .375rem .625rem; width: 100%; text-align: center; }
     .venue-card__browse { font-size: .8125rem; font-weight: 600; color: var(--accent); margin-top: .25rem; display: block; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }

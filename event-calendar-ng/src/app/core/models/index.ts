@@ -310,3 +310,14 @@ export interface AuditLogResponse {
   ipAddress?: string;
   timestamp: string;
 }
+
+// ─── Notification ─────────────────────────────────────────────
+export interface NotificationResponse {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  userId: number;
+}

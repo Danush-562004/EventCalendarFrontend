@@ -32,8 +32,8 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
                 @if (isEventStarted()) {
                   <span class="event-started-notice">⚠️ Event has already started</span>
                 } @else {
-                  <a [routerLink]="['/events', event()!.id, 'edit']" class="btn btn--ghost btn--sm">✏️ Edit</a>
-                  <button class="btn btn--danger btn--sm" (click)="confirmDelete = true">🗑 Delete</button>
+                  <a [routerLink]="['/events', event()!.id, 'edit']" class="btn btn--ghost btn--sm">✏️</a>
+                  <button class="btn btn--danger btn--sm" (click)="confirmDelete = true">🗑</button>
                 }
               }
             </div>
@@ -70,20 +70,12 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
           }
 
           <div class="event-detail__info-grid">
-            <div class="info-card">
-              <span class="info-card__label">Attendees</span>
-              <span class="info-card__value">{{ event()!.ticketCount }}{{ event()!.maxAttendees > 0 ? ' / ' + event()!.maxAttendees : ' registered' }}</span>
-            </div>
             @if (event()!.maxAttendees > 0) {
-              <div class="info-card" [class.info-card--warn]="event()!.availableSeats <= 5">
+              <div class="info-card" [class.info-card--warn]="event()!.availableSeats <= 5 && event()!.availableSeats > 0" [class.info-card--danger]="event()!.availableSeats === 0">
                 <span class="info-card__label">Available Seats</span>
-                <span class="info-card__value">{{ event()!.availableSeats === 0 ? 'Sold Out' : event()!.availableSeats }}</span>
+                <span class="info-card__value">{{ event()!.availableSeats === 0 ? 'Sold Out' : event()!.availableSeats + ' / ' + event()!.maxAttendees }}</span>
               </div>
             }
-            <div class="info-card">
-              <span class="info-card__label">Ticket Price</span>
-              <span class="info-card__value">{{ event()!.price > 0 ? '₹' + (event()!.price | number) : 'Free' }}</span>
-            </div>
             @if (event()!.venue) {
               <div class="info-card">
                 <span class="info-card__label">Venue Capacity</span>
@@ -94,6 +86,10 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
                 <span class="info-card__value">{{ event()!.venue!.address }}, {{ event()!.venue!.city }}, {{ event()!.venue!.state }}</span>
               </div>
             }
+            <div class="info-card">
+              <span class="info-card__label">Ticket Price</span>
+              <span class="info-card__value">{{ event()!.price > 0 ? '₹' + (event()!.price | number) : 'Free' }}</span>
+            </div>
             @if (event()!.reminderEnabled) {
               <div class="info-card">
                 <span class="info-card__label">Reminder</span>
@@ -125,14 +121,9 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
               <!-- Availability info -->
               <div class="availability-bar">
                 @if (event()!.maxAttendees > 0) {
-                  <span class="avail-badge" [class.avail-badge--low]="event()!.availableSeats <= 5">
-                    🎟 {{ event()!.availableSeats }} seats available
+                  <span class="avail-badge" [class.avail-badge--low]="event()!.availableSeats <= 5" [class.avail-badge--full]="event()!.availableSeats === 0">
+                    🎟 {{ event()!.availableSeats === 0 ? 'Sold Out' : event()!.availableSeats + ' seats available' }}
                   </span>
-                  @if (event()!.availableSeats === 0) {
-                    <span class="avail-badge avail-badge--full">Sold Out</span>
-                  }
-                } @else {
-                  <span class="avail-badge">🎟 Unlimited seats</span>
                 }
                 @if (event()!.price > 0) {
                   <span class="price-badge">₹{{ event()!.price | number }} per ticket</span>
@@ -261,6 +252,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
     .event-detail__info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
     .info-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .25rem; }
     .info-card--warn { border-color: #f59e0b; background: rgba(245,158,11,.08); }
+    .info-card--danger { border-color: #ef4444; background: rgba(239,68,68,.08); }
     .info-card__label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
     .info-card__value { font-size: .9375rem; font-weight: 600; color: var(--text); }
     .ticket-section { border-top: 1px solid var(--border); padding-top: 1.5rem; margin-top: 1.5rem; }
