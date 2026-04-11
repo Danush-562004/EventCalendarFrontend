@@ -34,31 +34,16 @@ export class AuthStore {
   clearAuth(): void {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
-    // Also clear any old localStorage entries
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
     this._token.set(null);
     this._auth.set(null);
   }
 
   private loadToken(): string | null {
-    // Migrate from localStorage if present (one-time cleanup)
-    const lsToken = localStorage.getItem(TOKEN_KEY);
-    if (lsToken) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-    }
     return sessionStorage.getItem(TOKEN_KEY);
   }
 
   private loadAuth(): AuthResponse | null {
     try {
-      // Migrate from localStorage if present (one-time cleanup)
-      const lsRaw = localStorage.getItem(USER_KEY);
-      if (lsRaw) {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-      }
       const raw = sessionStorage.getItem(USER_KEY);
       return raw ? (JSON.parse(raw) as AuthResponse) : null;
     } catch {

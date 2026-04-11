@@ -164,7 +164,12 @@ export class RemindersComponent implements OnInit {
 
   ngOnInit() {
     this.load();
-    this.eventApi.getAll(1, 100).subscribe({ next: r => this.events.set(r.items) });
+    this.eventApi.getAll(1, 100).subscribe({
+      next: r => {
+        const now = new Date();
+        this.events.set(r.items.filter(e => e.isActive && new Date(e.startDateTime) > now));
+      }
+    });
   }
 
   load() {

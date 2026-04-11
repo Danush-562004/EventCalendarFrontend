@@ -29,7 +29,9 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
             </div>
             <div class="event-detail__actions">
               @if (auth.isAdmin()) {
-                @if (isEventStarted()) {
+                @if (isEventPast()) {
+                  <button class="btn btn--danger btn--sm" (click)="confirmDelete = true">🗑</button>
+                } @else if (isEventStarted()) {
                   <span class="event-started-notice">⚠️ Event has already started</span>
                 } @else {
                   <a [routerLink]="['/events', event()!.id, 'edit']" class="btn btn--ghost btn--sm">✏️</a>
@@ -227,7 +229,7 @@ import { EventResponse, TicketResponse, CreateTicketRequest, CreateReminderReque
       <app-confirm-dialog
         [open]="confirmDelete"
         title="Delete Event"
-        message="This will soft-delete the event and make it inactive. Continue?"
+        message="This will deactivate the event and make it inactive. Continue?"
         confirmLabel="Delete"
         (confirm)="deleteEvent()"
         (cancel)="confirmDelete = false"

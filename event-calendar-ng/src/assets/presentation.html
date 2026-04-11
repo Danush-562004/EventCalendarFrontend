@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventCal Presentation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #fff; overflow: hidden; }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  /* ── Slide base ── */
+  .slide {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column; justify-content: center;
+    padding: 5vw 7vw;
+    background: linear-gradient(135deg, #0d0d1a 0%, #111827 100%);
+    overflow: hidden;
+  }
+  .slide.active { display: flex; animation: fadeSlide .45s ease; }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Decorative blobs ── */
+  .slide::before {
+    content: '';
+    position: absolute; width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,113,227,.18) 0%, transparent 70%);
+    top: -150px; right: -100px; pointer-events: none;
+  }
+  .slide::after {
+    content: '';
+    position: absolute; width: 350px; height: 350px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,.12) 0%, transparent 70%);
+    bottom: -100px; left: -80px; pointer-events: none;
+  }
+
+  /* ── Slide number ── */
+  .slide-num {
+    position: absolute; top: 2rem; right: 2.5rem;
+    font-size: .8rem; color: rgba(255,255,255,.3); letter-spacing: .1em;
+  }
+
+  /* ── Logo bar ── */
+  .logo-bar {
+    display: flex; align-items: center; gap: .75rem;
+    margin-bottom: 2.5rem;
+  }
+  .logo-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, #0071e3, #5b21b6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+  }
+  .logo-text { font-size: 1.1rem; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: .05em; }
+
+  /* ── Headings ── */
+  .slide-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800; letter-spacing: -.03em;
+    background: linear-gradient(90deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: .5rem; line-height: 1.1;
+  }
+  .slide-sub {
+    font-size: clamp(.9rem, 1.5vw, 1.1rem);
+    color: rgba(255,255,255,.45); margin-bottom: 2.5rem; font-weight: 400;
+  }
+
+  /* ── Grid layouts ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; }
+
+  /* ── Cards ── */
+  .card {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px; padding: 1.25rem 1.5rem;
+    backdrop-filter: blur(8px);
+  }
+  .card-title {
+    font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: #60a5fa; margin-bottom: .875rem;
+  }
+  .card ul { list-style: none; display: flex; flex-direction: column; gap: .45rem; }
+  .card ul li {
+    font-size: clamp(.75rem, 1.1vw, .875rem);
+    color: rgba(255,255,255,.75); padding-left: 1.1rem; position: relative; line-height: 1.4;
+  }
+  .card ul li::before { content: '›'; position: absolute; left: 0; color: #0071e3; font-weight: 700; }
+
+  /* ── Tech pills ── */
+  .pills { display: flex; flex-wrap: wrap; gap: .625rem; margin-bottom: 2rem; }
+  .pill {
+    padding: .375rem 1rem; border-radius: 980px;
+    font-size: .8rem; font-weight: 600; letter-spacing: .02em;
+  }
+  .pill-blue   { background: rgba(0,113,227,.2);   color: #60a5fa; border: 1px solid rgba(0,113,227,.3); }
+  .pill-purple { background: rgba(139,92,246,.2);  color: #c4b5fd; border: 1px solid rgba(139,92,246,.3); }
+  .pill-green  { background: rgba(16,185,129,.2);  color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+  .pill-amber  { background: rgba(245,158,11,.2);  color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+  .pill-red    { background: rgba(239,68,68,.2);   color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+
+  /* ── Role badge ── */
+  .role-badge {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .375rem 1rem; border-radius: 980px;
+    font-size: .8rem; font-weight: 700; letter-spacing: .04em;
+    margin-bottom: 1.5rem;
+  }
+  .role-admin { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+  .role-user  { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: rgba(255,255,255,.08); margin: 1.5rem 0; }
+
+  /* ── Slide 1 hero ── */
+  .hero-title {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 900; letter-spacing: -.04em; line-height: 1;
+    background: linear-gradient(90deg, #fff 0%, #818cf8 60%, #0071e3 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: .75rem;
+  }
+  .hero-sub {
+    font-size: clamp(1rem, 1.8vw, 1.3rem);
+    color: rgba(255,255,255,.4); margin-bottom: 2.5rem; font-weight: 300;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 1rem;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 980px; padding: .5rem 1.25rem;
+    backdrop-filter: blur(12px); z-index: 100;
+  }
+  .nav button {
+    background: none; border: none; color: rgba(255,255,255,.6);
+    font-size: 1.1rem; cursor: pointer; padding: .25rem .5rem;
+    border-radius: 8px; transition: color .15s, background .15s;
+  }
+  .nav button:hover { color: #fff; background: rgba(255,255,255,.1); }
+  .nav-dots { display: flex; gap: .5rem; align-items: center; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255,255,255,.25); cursor: pointer; transition: all .2s;
+  }
+  .dot.active { background: #0071e3; width: 20px; border-radius: 4px; }
+
+  /* ── Keyboard hint ── */
+  .key-hint {
+    position: fixed; bottom: 2rem; right: 2rem;
+    font-size: .7rem; color: rgba(255,255,255,.2); letter-spacing: .05em;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ══ SLIDE 1 — Hero ══ -->
+  <div class="slide active" id="s1">
+    <span class="slide-num">01 / 05</span>
+    <div class="logo-bar">
+      <div class="logo-icon">◆</div>
+      <span class="logo-text">EVENTCAL</span>
+    </div>
+    <div class="hero-title">Event Calendar<br>Application</div>
+    <div class="hero-sub">A full-stack event management platform with ticketing, payments & notifications</div>
+
+    <div class="pills">
+      <span class="pill pill-blue">Angular 17</span>
+      <span class="pill pill-blue">TypeScript</span>
+      <span class="pill pill-purple">ASP.NET Core 8</span>
+      <span class="pill pill-purple">C#</span>
+      <span class="pill pill-red">SQL Server</span>
+      <span class="pill pill-red">Entity Framework Core</span>
+      <span class="pill pill-green">JWT Auth</span>
+      <span class="pill pill-amber">Gmail SMTP</span>
+    </div>
+
+    <div class="grid-2" style="max-width:700px">
+      <div class="card">
+        <div class="card-title">Frontend</div>
+        <ul>
+          <li>Angular UI Components</li>
+          <li>Signals & Reactive Forms</li>
+          <li>Angular Router & Guards</li>
+          <li>HTTP Interceptors</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">Backend</div>
+        <ul>
+          <li>Repository + Service Pattern</li>
+          <li>Code-First EF Core Migrations</li>
+          <li>Background Hosted Services</li>
+          <li>Global Exception Middleware</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 2 — Features ══ -->
+  <div class="slide" id="s2">
+    <span class="slide-num">02 / 05</span>
+    <div class="logo-bar">
+      <div class="logo-icon">◆</div>
+      <span class="logo-text">EVENTCAL</span>
+    </div>
+    <div class="slide-title">Core Features</div>
+    <div class="slide-sub">Everything the platform delivers out of the box</div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">🎫 Ticketing</div>
+        <ul>
+          <li>Book tickets with quantity </li>
+          <li>5-minute payment countdown</li>
+          <li>No-refund policy acknowledgement</li>
+          <li>Ticket status tracking</li>
+          <li>Filter by payment status</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">💳 Payments</div>
+        <ul>
+          <li>Multiple payment methods</li>
+          <li>Auto transaction ID generation</li>
+          <li>Booking confirmation email</li>
+          <li>Full refund on event cancellation</li>
+          <li>Refund email notification</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">🔔 Notifications</div>
+        <ul>
+          <li>In-app notification bell</li>
+          <li>Unread count badge</li>
+          <li>Event reminder emails</li>
+          <li>Background reminder dispatch</li>
+          <li>Real-time polling (30s)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">📅 Events</div>
+        <ul>
+          <li>Search, filter & calendar view</li>
+          <li>Category & venue filtering</li>
+          <li>Price range filter</li>
+          <li>Available seats (live update)</li>
+          <li>Expired event detection</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">🏛️ Venues & Categories</div>
+        <ul>
+          <li>Venue capacity enforcement</li>
+          <li>Contact info management</li>
+          <li>Category-based event browsing</li>
+          <li>Soft delete with active events guard</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">🔐 Auth & Security</div>
+        <ul>
+          <li>JWT authentication</li>
+          <li>Role-based access (Admin/User)</li>
+          <li>Phone & username validation</li>
+          <li>Full audit logging</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3 — Admin Role ══ -->
+  <div class="slide" id="s3">
+    <span class="slide-num">03 / 05</span>
+    <div class="logo-bar">
+      <div class="logo-icon">◆</div>
+      <span class="logo-text">EVENTCAL</span>
+    </div>
+    <div class="slide-title">Admin Role</div>
+    <div class="role-badge role-admin">🛡 Administrator</div>
+
+    <div class="grid-2">
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card">
+          <div class="card-title">📅 Event Management</div>
+          <ul>
+            <li>Create events with venue, category, price & capacity</li>
+            <li>Edit event details at any time</li>
+            <li>Deactivate events — triggers auto refund if before start</li>
+            <li>View all ticket holders per event</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">🏛️ Venue & Category</div>
+          <ul>
+            <li>Add, edit and deactivate venues</li>
+            <li>Blocked from deleting venues with active events</li>
+            <li>Add and edit categories</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Dashboard</div>
+          <ul>
+            <li>Total events & upcoming events count</li>
+            <li>Category count overview</li>
+            <li>Upcoming events list (future only)</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card">
+          <div class="card-title">👥 User Management</div>
+          <ul>
+            <li>View all registered users</li>
+            <li>Search users by name, username or email</li>
+            <li>Delete user accounts</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">💳 Payment & Ticket Management</div>
+          <ul>
+            <li>View all payments with status filter</li>
+            <li>Update payment status & transaction ID</li>
+            <li>View and cancel any ticket</li>
+            <li>Filter tickets by status</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">📋 Audit Logs</div>
+          <ul>
+            <li>Full audit trail of all actions</li>
+            <li>Filter by action, entity type & date range</li>
+            <li>Tracks Create, Update, Delete, Login, Register</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4 — User Role ══ -->
+  <div class="slide" id="s4">
+    <span class="slide-num">04 / 05</span>
+    <div class="logo-bar">
+      <div class="logo-icon">◆</div>
+      <span class="logo-text">EVENTCAL</span>
+    </div>
+    <div class="slide-title">User Role</div>
+    <div class="role-badge role-user">👤 Registered User</div>
+
+    <div class="grid-2">
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card">
+          <div class="card-title">🎟 Booking Flow</div>
+          <ul>
+            <li>Browse & search events with calendar</li>
+            <li>Select quantity & seat number</li>
+            <li>Acknowledge no-refund policy</li>
+            <li>Confirm booking → navigate to My Tickets</li>
+            <li>Pay within 5-minute window</li>
+            <li>Receive booking confirmation email</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">🎫 My Tickets</div>
+          <ul>
+            <li>View all personal tickets</li>
+            <li>Filter by Completed / Pending / Refunded</li>
+            <li>Countdown timer for pending payments</li>
+            <li>Refunded badge on cancelled event tickets</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card">
+          <div class="card-title">🔔 Reminders & Notifications</div>
+          <ul>
+            <li>Set email reminders for any event</li>
+            <li>Reminder email sent at scheduled time</li>
+            <li>In-app bell with unread count</li>
+            <li>Refund notification when event is cancelled</li>
+            <li>Mark individual or all notifications as read</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">👤 Profile</div>
+          <ul>
+            <li>Edit first name, last name & phone</li>
+            <li>Toggle email & push notification preferences</li>
+            <li>Change password securely</li>
+            <li>View member since date & role</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+  <!-- ══ SLIDE 5 — System Diagrams ══ -->
+  <div class="slide" id="s5" style="padding:0;overflow:hidden;">
+    <span class="slide-num" style="z-index:10;">05 / 05</span>
+    <iframe src="diagrams.html" style="width:100%;height:100%;border:none;"></iframe>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<nav class="nav">
+  <button onclick="go(-1)">&#8592;</button>
+  <div class="nav-dots" id="dots"></div>
+  <button onclick="go(1)">&#8594;</button>
+</nav>
+<div class="key-hint">← → arrow keys to navigate</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  let cur = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => show(i);
+    dotsEl.appendChild(d);
+  });
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+  }
+
+  function go(dir) { show(cur + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+</script>
+</body>
+</html>

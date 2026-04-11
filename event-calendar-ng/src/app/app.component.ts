@@ -36,5 +36,8 @@ export class AppComponent implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    // Clear any stale data from localStorage (previously used, now session-only)
+    localStorage.clear();
+  }
 }
