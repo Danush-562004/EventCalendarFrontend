@@ -124,7 +124,7 @@ export class RegisterComponent {
       next: auth => {
         this.authStore.setAuth(auth);
         this.toast.success('Account created successfully!');
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/events']);
       },
       error:    () => this.loading.set(false),
       complete: () => this.loading.set(false)

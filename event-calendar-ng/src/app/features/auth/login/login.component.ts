@@ -80,8 +80,8 @@ export class LoginComponent {
       next: auth => {
         this.authStore.setAuth(auth);
         this.toast.success(`Welcome back, ${auth.user.fullName || auth.user.username}!`);
-        // Admins go to admin panel, users go to dashboard
-        const dest = auth.user.role === 'Admin' ? '/admin' : '/dashboard';
+        // Admins go to admin panel, users go to events
+        const dest = auth.user.role === 'Admin' ? '/admin' : '/events';
         this.router.navigate([dest]);
       },
       error: (err) => {

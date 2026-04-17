@@ -209,66 +209,44 @@
       <div class="logo-icon">◆</div>
       <span class="logo-text">EVENTCAL</span>
     </div>
-    <div class="slide-title">Core Features</div>
-    <div class="slide-sub">Everything the platform delivers out of the box</div>
+    <div class="slide-title">Unique Features</div>
+    <div class="slide-sub">What makes this platform stand out</div>
 
-    <div class="grid-3">
+    <div class="grid-2" style="max-width:900px;">
       <div class="card">
-        <div class="card-title">🎫 Ticketing</div>
+        <div class="card-title">💸 Smart Refund System</div>
         <ul>
-          <li>Book tickets with quantity </li>
-          <li>5-minute payment countdown</li>
-          <li>No-refund policy acknowledgement</li>
-          <li>Ticket status tracking</li>
-          <li>Filter by payment status</li>
+          <li>Admin cancels event → auto 100% refund triggered</li>
+          <li>Only applies if event hasn't started yet</li>
+          <li>Payments marked Refunded, tickets Cancelled atomically</li>
+          <li>Refund email sent to every affected user</li>
         </ul>
       </div>
       <div class="card">
-        <div class="card-title">💳 Payments</div>
+        <div class="card-title">⏱ 5-Minute Payment Window</div>
         <ul>
-          <li>Multiple payment methods</li>
-          <li>Auto transaction ID generation</li>
-          <li>Booking confirmation email</li>
-          <li>Full refund on event cancellation</li>
-          <li>Refund email notification</li>
+          <li>Ticket reserved for exactly 5 minutes after booking</li>
+          <li>Live countdown timer on the ticket card</li>
+          <li>Backend enforces the deadline — cannot be bypassed</li>
+          <li>Expired tickets blocked from payment server-side</li>
         </ul>
       </div>
       <div class="card">
-        <div class="card-title">🔔 Notifications</div>
+        <div class="card-title">🔔 Real-Time Email & In-App Notifications</div>
         <ul>
-          <li>In-app notification bell</li>
-          <li>Unread count badge</li>
-          <li>Event reminder emails</li>
-          <li>Background reminder dispatch</li>
-          <li>Real-time polling (30s)</li>
+          <li>Booking confirmation email with full ticket details</li>
+          <li>Scheduled reminder emails via background service</li>
+          <li>In-app bell with unread count, polls every 30s</li>
+          <li>Refund alert delivered both in-app and by email</li>
         </ul>
       </div>
       <div class="card">
-        <div class="card-title">📅 Events</div>
+        <div class="card-title">🎟 Ticket & Capacity Management</div>
         <ul>
-          <li>Search, filter & calendar view</li>
-          <li>Category & venue filtering</li>
-          <li>Price range filter</li>
-          <li>Available seats (live update)</li>
-          <li>Expired event detection</li>
-        </ul>
-      </div>
-      <div class="card">
-        <div class="card-title">🏛️ Venues & Categories</div>
-        <ul>
-          <li>Venue capacity enforcement</li>
-          <li>Contact info management</li>
-          <li>Category-based event browsing</li>
-          <li>Soft delete with active events guard</li>
-        </ul>
-      </div>
-      <div class="card">
-        <div class="card-title">🔐 Auth & Security</div>
-        <ul>
-          <li>JWT authentication</li>
-          <li>Role-based access (Admin/User)</li>
-          <li>Phone & username validation</li>
-          <li>Full audit logging</li>
+          <li>Max 10 tickets per user per event (enforced backend)</li>
+          <li>Venue capacity enforced at event creation</li>
+          <li>Available seats update reactively after each booking</li>
+          <li>No-refund policy acknowledgement before payment</li>
         </ul>
       </div>
     </div>

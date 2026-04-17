@@ -22,7 +22,7 @@ import { ToastService } from './toast.service';
   styles: [`
     .toast-container {
       position: fixed;
-      top: 1.5rem;
+      top: 70px;
       right: 1.5rem;
       z-index: 9999;
       display: flex;
@@ -38,26 +38,25 @@ import { ToastService } from './toast.service';
       padding: .875rem 1rem;
       border-radius: 12px;
       font-size: .875rem;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       pointer-events: all;
       animation: slideIn .25s ease;
-      box-shadow: 0 8px 32px rgba(0,0,0,.22);
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
       border-left: 4px solid transparent;
-      backdrop-filter: blur(12px);
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateX(40px); }
       to   { opacity: 1; transform: translateX(0); }
     }
-    .toast--success { background: rgba(16,185,129,.18); border-color: #10b981; color: #6ee7b7; }
-    .toast--error   { background: rgba(239,68,68,.18);  border-color: #ef4444; color: #fca5a5; }
-    .toast--info    { background: rgba(59,130,246,.18); border-color: #3b82f6; color: #93c5fd; }
-    .toast--warning { background: rgba(245,158,11,.18); border-color: #f59e0b; color: #fcd34d; }
+    .toast--success { background: #065f46; border-color: #10b981; color: #d1fae5; }
+    .toast--error   { background: #7f1d1d; border-color: #ef4444; color: #fee2e2; }
+    .toast--info    { background: #1e3a5f; border-color: #3b82f6; color: #dbeafe; }
+    .toast--warning { background: #78350f; border-color: #f59e0b; color: #fef3c7; }
     .toast__icon { font-size: 1.1rem; flex-shrink: 0; }
     .toast__content { flex: 1; }
     .toast__msg { display: block; line-height: 1.4; }
-    .toast__close { background: none; border: none; cursor: pointer; opacity: .6; font-size: .875rem; padding: 0 .25rem; color: inherit; flex-shrink: 0; }
+    .toast__close { background: none; border: none; cursor: pointer; opacity: .7; font-size: .875rem; padding: 0 .25rem; color: inherit; flex-shrink: 0; }
     .toast__close:hover { opacity: 1; }
   `]
 })

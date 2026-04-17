@@ -130,7 +130,7 @@ import { TicketResponse, CreatePaymentRequest, PaymentMethod } from '../../core/
       <div class="form-field">
         <label class="form-label">Currency</label>
         <select class="form-select" [(ngModel)]="payCurrency" [disabled]="payAmount === 0">
-          <option>INR</option><option>USD</option><option>EUR</option>
+          <option>INR</option>
         </select>
       </div>
       <div class="form-field">
